@@ -1,0 +1,28 @@
+@font-face {
+    font-family: "Mundial";
+    src: url("../assets/fonts/BowlbyOneSC-Regular.ttf");
+}
+
+div {
+    font-family: "Mundial",sans-serif;
+}
+
+button {
+    font-family: "Mundial",sans-serif;
+}
+
+.navbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0px 30px;
+    background:linear-gradient(90deg,#394460 46%, #768CC6 100%);
+    color:white;
+}
+
+.log-in{
+    padding:8px 16px;
+    border-radius:20px;
+    border:none;
+    cursor:pointer;
+}
