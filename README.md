@@ -1,4 +1,5 @@
-#Equipo de Desarrollo
+# Equipo de Desarrollo
+\
 MAURICIO ELEUTERIO ORTIZ RODRIGUEZ - FrontEnd \
 JOSE RAUL CORTEZ RICO - BackEnd \
 IAN BEIL PEREZ GONZALEZ - BackEnd \
