@@ -1,0 +1,17 @@
+.message{
+    user-select: none;
+    padding:10px 15px;
+    border-radius:20px;
+    margin:10px 0;
+    max-width:200px;
+}
+
+.left{
+    background:#445a84;
+    color:white;
+}
+
+.right{
+    background:#ffd600;
+    margin-left:auto;
+}

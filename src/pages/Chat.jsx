@@ -1,9 +1,25 @@
 import "./Chat.css"
 
+import Sidebar from "../components/chat/Sidebar"
+import ChatHeader from "../components/chat/ChatHeader"
+import ChatInput from "../components/chat/ChatInput"
+import Message from "../components/chat/Message"
+
 function Chat(){
     return (
         <div className="Content-Chat">
-            <h1>a</h1>
+            <Sidebar/>
+
+            <div className="Chat-area">
+                
+                <ChatHeader/>
+
+                <Message text="Hola." type="left"/>
+                <Message text="Hola." type="right"/>
+            </div>
+
+            <ChatInput/>
+
         </div>
     )
 }
