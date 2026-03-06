@@ -10,9 +10,11 @@
     text-align: center;
 } */
 
-.chat-container{
+.Content-Chat{
     display:flex;
     height:100vh;
+    width: 100%;
+    overflow: hidden;
 }
 
 .Chat-area{
@@ -24,4 +26,8 @@
 .chat-messages{
     flex: 1;
     padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }

@@ -7,8 +7,6 @@ function ChatInput(){
 
             <input placeholder="Escribe algo..." />
 
-            <button>🎤</button>
-
         </div>
     )
 }

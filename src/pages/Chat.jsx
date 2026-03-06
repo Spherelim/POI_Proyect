@@ -13,9 +13,10 @@ function Chat(){
             <div className="Chat-area">
                 
                 <ChatHeader/>
-
-                <Message text="Hola." type="left"/>
-                <Message text="Hola." type="right"/>
+                    <div className="chat-messages">
+                        <Message text="Hola." type="left"/>
+                        <Message text="Hola." type="right"/>
+                    </div>
             </div>
 
             <ChatInput/>

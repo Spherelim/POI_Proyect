@@ -1,17 +1,31 @@
+.chat-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
 .message{
-    user-select: none;
-    padding:10px 15px;
-    border-radius:20px;
-    margin:10px 0;
-    max-width:200px;
+    padding: 8px 15px;
+    border-radius: 18px;
+    max-width: 60%;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
 }
 
 .left{
     background:#445a84;
     color:white;
+    align-self: flex-start;
+    border-bottom-left-radius: 5px;
 }
 
 .right{
     background:#ffd600;
-    margin-left:auto;
+    color: black;
+    align-self: flex-end;
+    border-bottom-right-radius: 5px;
 }

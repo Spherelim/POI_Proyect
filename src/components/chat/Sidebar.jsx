@@ -15,7 +15,18 @@ function Sidebar(){
                     <p>User Name</p>
                     <span>Tú:Hola</span>
                 </div>
+                <span className="time">Ayer</span>
             </div>
+
+            <div className="chat-user">
+                <img src={imagen} alt="Img_User" />
+                <div>
+                    <p>User Name 2</p>
+                    <span>User Name:Hola</span>
+                </div>
+                <span className="time">Ayer</span>
+            </div>
+
         </div>
     )
 }
