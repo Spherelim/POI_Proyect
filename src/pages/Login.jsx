@@ -5,10 +5,12 @@ function Login(){
     const navigate = useNavigate();
     return(
         <div className="Log">
-            <h1>Nombre Usuario</h1>
-            <h1>Contraseña</h1>
-            <a onClick={()=>navigate("/Singup")}>No tienes una cuenta? Registrate.</a>
-            <button>Log</button>
+            <div className="Content">
+                <input type="text" placeholder="Nombre de Usuario" />
+                <input type="password" placeholder="Contraseña"/>
+                <a onClick={()=>navigate("/Singup")}>No tienes una cuenta? Registrate.</a>
+                <button onClick={()=>navigate("/Chat")}>Log</button>
+            </div>
         </div>
     )
 }

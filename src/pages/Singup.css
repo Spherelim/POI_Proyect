@@ -1,3 +1,11 @@
-h1{
-    font-size: 25;
+.Sing{
+    height: 100dvh;
+    display: flex;
+    justify-content: center;
+}
+
+.Content p{
+    margin: 0%;
+    margin-top: 10px;
+    user-select: none;
 }

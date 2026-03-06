@@ -7,7 +7,7 @@ function NavBar(){
 
     return(
         <div className="navbar">
-            <h2>MundiChat</h2>
+            <h1>MundiChat</h1>
             
             <button className="log-in" onClick={()=>navigate("/Login")}>
                 Iniciar sesión

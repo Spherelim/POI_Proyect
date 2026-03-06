@@ -2,8 +2,6 @@ import { useNavigate } from "react-router-dom"
 
 //import NavBar from "../components/NavBar" //implementación de los componentes
 import Hero from "../components/Hero-Home"
-import Developers from "../components/Developers"
-import StartButton from "../components/StartButton"
 import MainLayout from "../layouts/MainLayout"
 
 import "./Home.css"
@@ -16,8 +14,6 @@ function Home(){
 
             <MainLayout>
                 <Hero/>
-                <Developers/>
-                <StartButton/>
             </MainLayout>
 
             {/* <div style={styles.container}>

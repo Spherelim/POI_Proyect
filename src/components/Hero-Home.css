@@ -1,11 +1,33 @@
 .Bienvenida{
-    color: white;
+    height: 90vh;
+    
+    display: flex;
+    flex-direction: column;
+
+    justify-content: center;
+    align-items: center;
+
+    text-align: center;
 }
-h1{
-    font-size: 128px;
+
+.Bienvenida h1{
+    font-size: 80px;
+    color: white;
+    margin: 0%;
 }
 
 .tagline{
-    font-size: 25px;
-    color: black;
+    margin: 20px 0;
+    padding: 12px 40px;
+
+    background: #d9d9d9bb;
+    border-radius: 40px;
+}
+
+.start-btn{
+    transition: transform 0.2s;
+}
+
+.start-btn:hover{
+    transform: scale(1.1);
 }

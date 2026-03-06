@@ -1,14 +1,19 @@
+import { useNavigate } from "react-router-dom"
 import "./Singup.css"
 
 function SingUp(){
+    const navigate = useNavigate();
     return(
         <div className="Sing">
-            <h1>Nombre Completo</h1>
-            <h1>Nombre Usuario</h1>
-            <h1>Correo</h1>
-            <h1>Contraseña</h1>
-            <h1>Fecha Nacimiento</h1>
-            <button>Register</button>
+            <div className="Content">
+                <input type="text" placeholder="Nombre Completo" />
+                <input type="text" placeholder="Nombre de Usuario" />
+                <input type="email" placeholder="Correo Electronico" />
+                <input type="password" placeholder="Contraseña" />
+                <p>Fecha de Nacimiento</p>
+                <input type="date" placeholder="Fecha de Nacimiento" />
+                <button onClick={()=>navigate("/Chat")}>Register</button>
+            </div>
         </div>
     )
 }

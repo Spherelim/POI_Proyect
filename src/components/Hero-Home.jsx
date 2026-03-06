@@ -1,4 +1,6 @@
 import "./Hero-Home.css"
+import StartButton from "../components/StartButton"
+import Developers from "./Developers"
 
 function Hero(){
     return(
@@ -8,6 +10,8 @@ function Hero(){
             <div className="tagline">
                 Conecta a tiempo real con tus amigos aficionados
             </div>
+            <Developers/>
+            <StartButton/>
         </div>
     )
 }

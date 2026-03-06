@@ -1,3 +1,69 @@
-h1{
-    font-size: 25px;
+@font-face {
+    font-family: "Mundial";
+    src: url("../assets/fonts/BowlbyOneSC-Regular.ttf");
+}
+
+.Log{
+    height: 100dvh;
+    display: flex;
+    justify-content: center;
+}
+
+.Content{
+    
+    display: flex;
+    flex-direction: column;
+
+    justify-content: center;
+    align-items: center;
+
+    text-align: center;
+
+    background-color: rgba(240, 248, 255, 0.514);
+    border-radius: 20px;
+
+    margin: 10vh;
+    padding: 5vh;
+}
+
+.Content input{
+    font-family: "Mundial", sans-serif;
+    margin: 10px;
+    padding:8px 30px;
+    border-radius:20px;
+    cursor:pointer;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.Content input:hover{
+    transform: scale(1.1);
+}
+
+.Content a{
+    font-size: 13px;
+    margin: 10px 0px 10px;
+    transition: color 0.2s;
+}
+
+.Content a:hover{
+    color: blue;
+}
+
+.Content button{
+    margin-top: 10px;
+    padding:8px 20px;
+    border-radius:20px;
+    border:none;
+    cursor:pointer;
+    transition: transform 0.2s;
+}
+
+.Content button:hover{
+    transform: scale(1.1);
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+}
+
+.Content button:active{
+    transform: scale(0.95);
 }
