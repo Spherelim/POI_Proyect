@@ -1,5 +1,11 @@
+import "./Chat.css"
+
 function Chat(){
-    return <h1> Chat MundiChat del Usuario </h1>
+    return (
+        <div className="Content-Chat">
+            <h1>a</h1>
+        </div>
+    )
 }
 
 export default Chat
