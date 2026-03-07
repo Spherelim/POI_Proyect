@@ -4,4 +4,4 @@ MAURICIO ELEUTERIO ORTIZ RODRIGUEZ - FrontEnd \
 JOSE RAUL CORTEZ RICO - BackEnd \
 IAN BEIL PEREZ GONZALEZ - BackEnd 
 
-![altertext](https://i.pinimg.com/736x/d1/ad/ba/d1adbacd4c07921cc5b15182b52a4ba7.jpg)
+![altertext](https://i.pinimg.com/736x/c4/2c/f4/c42cf410fe478e36c476ff577c5b1791.jpg)
