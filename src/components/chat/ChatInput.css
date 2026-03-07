@@ -7,17 +7,28 @@
     display:flex;
     align-items:center;
     padding:10px;
-    background: white;
-    border-top: 1px solid #ddd;
+    /* background: white; */
 }
 
-.chat-input button {
+.chat-input{
+    position: relative;
+    z-index: 5;
+}
+
+.chat-input img {
+    width: 40px;
+    height: auto;
     background: none;
     border: none;
     font-size: 20px;
     cursor: pointer;
     padding: 5px 10px;
     color: #5b6f94;
+    transition: Transform 0.2s;
+}
+
+.chat-input img:hover{
+    transform: scale(1.1);
 }
 
 .chat-input input {

@@ -3,7 +3,7 @@
     justify-content:space-between;
     align-items:center;
     padding:10px 20px;
-    background:#5b6f94;
+    background: linear-gradient(90deg, #394460 54%, #768CC6 100%);
     color:white;
     border-bottom: 1px solid rgba(255,255,255,0.1);
 }
@@ -20,6 +20,12 @@
     border-radius:50%;
     object-fit: cover;
     border: 2px solid white;
+    transition: Transform 0.2s;
+}
+
+.user-info img:hover{
+    transform: scale(1.1);
+    opacity: 0.7;
 }
 
 .user-info div {
@@ -30,6 +36,11 @@
 .user-info h3 {
     margin: 0;
     font-size: 16px;
+    user-select: none;
+}
+
+.user-info span{
+    user-select: none;
 }
 
 .status {
@@ -47,8 +58,10 @@
     cursor:pointer;
     width: 25px;
     height: 25px;
+    transition: Transform 0.2s;
 }
 
 .icons img:hover {
+    transform: scale(1.1);
     opacity: 0.7;
 }

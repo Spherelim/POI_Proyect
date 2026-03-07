@@ -5,7 +5,7 @@
 
 .sidebar{
     width:300px;
-    background:linear-gradient(#445a84,#8ea6d6);
+    background:linear-gradient(#394460 11%,#6D83B9 46%,#768CC6 100%);
     padding:10px;
     color:white;
     overflow-y: auto;
@@ -14,7 +14,7 @@
 .search{
     font-family: "Mundial",sans-serif;
     width:100%;
-    padding:10px;
+    padding:5px;
     border-radius:20px;
     border:none;
     outline: none;
@@ -29,14 +29,16 @@
     font-size: 12px;
 }
 
-.chat-user{
+
+
+/* .chat-user{
     display:flex;
     align-items:center;
     margin-top:15px;
     padding: 8px;
-    border-radius: 10px;
+    border-radius: 30px;
     cursor: pointer;
-    /* transition: background 0.2s; */
+    transition: background 0.2s;
 }
 
 .chat-user:hover {
@@ -71,4 +73,4 @@
     font-size: 11px;
     opacity: 0.6;
     white-space: nowrap;
-}
+} */

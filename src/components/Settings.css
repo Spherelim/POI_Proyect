@@ -1,0 +1,13 @@
+.Container{
+    background-color: rgba(0, 0, 0, 0.452);
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    flex: 1;
+}
+
+.Container p{
+    color: white;
+    opacity: 0.6;
+}
