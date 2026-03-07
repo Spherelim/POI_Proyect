@@ -21,11 +21,13 @@ button {
 }
 
 .log-in{
-    padding:8px 16px;
-    border-radius:20px;
+    font-size: 20px;
+    padding:5px 10px;
+    border-radius:30px;
     border:none;
     cursor:pointer;
     transition: transform 0.2s;
+    
 }
 
 .log-in:hover{
