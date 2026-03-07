@@ -19,8 +19,8 @@
 
 .Bienvenida{
     position: relative;
-    height: 90vh;
-    width: 85%;
+    height: 80vh;
+    width: 70%;
     margin: auto;
     display: flex;
     flex-direction: column;
@@ -40,7 +40,7 @@
 }
 
 .Bienvenida h1{
-    font-size: 120px;
+    font-size: 100px;
     color: white;
     margin: 0%;
 }
@@ -57,13 +57,13 @@
 
 .dev h2{
     color: white;
-    font-size: 35px;
+    font-size: 20px;
     margin-bottom: 20px;
 }
 
 .dev p{
     color: white;
-    font-size: 35px;
+    font-size: 20px;
     margin: 5px 0;
 }
 
