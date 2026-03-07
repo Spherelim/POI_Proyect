@@ -1,0 +1,24 @@
+.chat-info-panel{
+    width: 320px;
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+
+    background: linear-gradient(#5b6f94,#7c91bb);
+
+    /* Honestamente no me gusta, pero es interesante tenerlo ahí */
+    animation: slideInfo 0.3s ease;
+}
+
+
+/* Luego cunado lo cierras es muy brusco asi que...
+despues vemos como le hacemos */
+@keyframes slideInfo{
+    from{
+        transform: translateX(100%);
+    }
+    to{
+        transform: rotateX(0);
+    }
+}

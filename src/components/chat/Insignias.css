@@ -1,0 +1,12 @@
+.Insignias{
+    background-color: rgba(0, 0, 0, 0.534);
+    margin: 0px 10px;
+    padding: 30px;
+    border-radius: 1cap;
+}
+
+.Insignias p{
+    color: white;
+    text-align: center;
+    opacity: 0.7;
+}

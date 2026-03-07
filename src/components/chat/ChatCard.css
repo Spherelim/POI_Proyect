@@ -1,0 +1,44 @@
+.Chat-Card{
+    display:flex;
+    align-items:center;
+    margin-top:15px;
+    padding: 8px;
+    border-radius: 30px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.Chat-Card:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.Chat-Card img{
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    margin-right:10px;
+    object-fit: cover;
+    border: 2px solid white;
+}
+
+.Chat-Card div {
+    flex: 1;
+}
+
+.Chat-Card p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.Chat-Card span {
+    font-size: 12px;
+    opacity: 0.8;
+    display: block;
+}
+
+.time {
+    font-size: 11px;
+    opacity: 0.6;
+    white-space: nowrap;
+}

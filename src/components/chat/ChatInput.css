@@ -1,0 +1,47 @@
+@font-face {
+    font-family: "Mundial";
+    src: url("../assets/fonts/BowlbyOneSC-Regular.ttf");
+}
+
+.chat-input{
+    display:flex;
+    align-items:center;
+    padding:10px;
+    /* background: white; */
+}
+
+.chat-input{
+    position: relative;
+    z-index: 5;
+}
+
+.chat-input img {
+    width: 40px;
+    height: auto;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px 10px;
+    color: #5b6f94;
+    transition: Transform 0.2s;
+}
+
+.chat-input img:hover{
+    transform: scale(1.1);
+}
+
+.chat-input input {
+    font-family: "Mundial",sans-serif;
+    flex: 1;
+    margin: 0 10px;
+    padding: 10px 15px;
+    border-radius: 25px;
+    border: 1px solid #ddd;
+    outline: none;
+    font-size: 14px;
+}
+
+.chat-input input:focus {
+    border-color: #5b6f94;
+}

@@ -1,4 +1,4 @@
-.Content-Chat{
+/* .Content-Chat{
     height: 100vh;
     
     display: flex;
@@ -8,4 +8,60 @@
     align-items: center;
 
     text-align: center;
+} */
+
+.Content-Chat{
+    display:flex;
+    height:100vh;
+    width: 100%;
+    overflow: hidden;
+    background:linear-gradient(#CCC8C8 0%,#EFEAEA 52%,#666464 100%);
+}
+
+.FondoDePantalla{
+    position: fixed;
+    overflow: hidden;
+    z-index: 0;
+    opacity: 0.5;
+}
+
+.Chat-area{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.Chat-area::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    
+    background-image: url("/src/assets/images/Fondo 3.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    opacity: 0.25;
+
+    z-index: 0;
+}
+
+.chat-messages{
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-messages,
+.chat-input,
+.chat-header{
+    position: relative;
+    z-index: 1;
 }
