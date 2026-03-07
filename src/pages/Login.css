@@ -67,8 +67,8 @@
 }
 
 .Btn-Cerrar:hover {
-    background-color: #ff4444;
-    color: white;
+    background-color: #394460;
+    color: #fff;
     transform: scale(1.1) rotate(90deg);
     box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
 }

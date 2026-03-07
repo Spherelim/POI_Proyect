@@ -30,9 +30,10 @@
     margin-top: 10px;
     user-select: none;
 }
+
 .Btn-Registrar{
     width: 150px;
-    background-color: rgb(0, 0, 0);
-    color: white;
+    background-color: #fff;
+    color: #394460;
     font-size: 20px;
 }
