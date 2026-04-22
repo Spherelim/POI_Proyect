@@ -12,7 +12,9 @@ import Notificacion from "../components/Notificacion"
 import Tareas from "../components/Tareas"
 import Solicitudes from "../components/Solicitudes"
 
-import { useState } from "react"
+//vamos a ver como jala esta madre
+import {useEffect,useState} from "react"
+import {socket}from "../socket"
 
 function Chat(){
 
@@ -20,6 +22,30 @@ function Chat(){
 
     const [mostrarInfo,setMostrarInfo] = useState(false)
 
+    const [mensaje,setMensaje]=useState("")
+    const [mensajes,setMensajes]=useState([])
+
+    useEffect(() => {
+        socket.on("mensaje", (data) => {
+            setMensajes((prev) => [...prev, data])
+        })
+
+        return () => {
+            socket.off("mensaje")
+        }
+    }, [])
+
+    const enviarMensaje = () => {
+        if (mensaje.trim() === "") return
+
+        socket.emit("mensaje", {
+            text:mensaje,
+            type:"right"
+        })
+        setMensaje("")
+    }
+
+    // no pongan mensajes adentro xd, se muestran aksdjaskd
     return (
         <div className="Content-Chat">
             <Sidebar cambiarVista={setVista}/>
@@ -31,18 +57,26 @@ function Chat(){
                         <ChatHeader abrirInfo={()=>setMostrarInfo(true)}/>
 
                         <div className="chat-messages">
-                            <Message text="Hola." type="left"/>
-                            <Message text="Hola." type="right"/>
+                            {mensajes.map((msg,index) => (
+                                <Message 
+                                    key={index} 
+                                    text={msg.text} 
+                                    type={msg.type}
+                                />
+                            ))}
                         </div>
 
-                        <ChatInput/>
+                        <ChatInput
+                            mensaje={mensaje}
+                            setMensaje={setMensaje}
+                            enviarMensaje={enviarMensaje}
+                        />
                     </>
                 )}
 
                 {visita === "ajustes" && (
                     <>
                         <ChatHeader/>
-
                         <Settings/>
 
                     </>
@@ -51,7 +85,6 @@ function Chat(){
                 {visita === "noti" && (
                     <>
                         <ChatHeader/>
-
                         <Notificacion/>
 
                     </>
@@ -60,7 +93,6 @@ function Chat(){
                 {visita === "tareas" && (
                     <>
                         <ChatHeader/>
-
                         <Tareas/>
 
                     </>
@@ -69,7 +101,6 @@ function Chat(){
                 {visita === "soli" && (
                     <>
                         <ChatHeader/>
-
                         <Solicitudes/>
                         
                     </>
