@@ -3,7 +3,7 @@ import "./ChatInput.css"
 import Alert from "../Alert.jsx"
 import { useState } from "react"
 
-function ChatInput(){
+function ChatInput({mensaje,setMensaje,enviarMensaje}){
 
     const [mostrarAlert,setMostrarAlert]=useState(false)
     const Multimedia = "/src/assets/icons/chat/agregar (w).png"
@@ -14,7 +14,16 @@ function ChatInput(){
                 <img src={Multimedia} alt="Multimedia"
                 onClick={()=>setMostrarAlert(true)} />
 
-                <input placeholder="Escribe algo..." />
+                <input placeholder="Escribe algo..." 
+                value={mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+                onKeyPress={(e) =>{ 
+                    if (e.key === "Enter") {
+                        enviarMensaje()
+                    }
+                    }
+                }
+                />
 
             </div>
 
