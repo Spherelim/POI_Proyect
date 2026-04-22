@@ -8,6 +8,43 @@ app.use(cors())
 
 const server = http.createServer(app)
 
+const db = require("./db")
+
+app.use(express.json())
+
+app.post("/register", (req, res) => {
+    const {nombreCompleto,nombreUsuario,fechaNac,correo,contrasena} = req.body
+
+    const sqlPersona = `
+        INSERT INTO persona (NombreCompleto, FechaNac)
+        VALUES (?, ?)
+    `
+
+    db.query(sqlPersona, [nombreCompleto, fechaNac], (err, result) => {
+        if (err) {
+            console.error("Error al insertar persona:", err)
+            return res.status(500).json({ error: "Error al registrar usuario" })
+        }
+
+        const personaId = result.insertId
+
+        const sqlUsuario = `
+            INSERT INTO usuario (NombreUsuario, Correo, Contraseña, id_per)
+            VALUES (?, ?, ?, ?)
+        `
+
+        db.query(sqlUsuario, [nombreUsuario,correo, contrasena, personaId], (err) => {
+            if (err) {
+                console.error("Error al insertar usuario:", err)
+                return res.status(500).json({ error: "Error al registrar usuario" })
+            }
+            return res.status(201).json({ message: "Usuario registrado exitosamente" })
+        })
+    })
+
+})
+
+
 const io = new Server(server, {
     cors: {
         origin: "*"
