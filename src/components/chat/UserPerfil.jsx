@@ -7,6 +7,7 @@ function UserPerfil(){
 
     const [AlertData,setMostrarAlert]=useState(false)
 
+    // Datos del Usuario receptor
     let PerfilImg = "/src/assets/images/A-1.jpg"
     let BannerPerfil = "/src/assets/images/Banner 10.png"
     let UserName = "User Name"

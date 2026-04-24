@@ -12,6 +12,31 @@ const db = require("./db")
 
 app.use(express.json())
 
+app.post("/login", (req, res) => {
+    const { nombreUsuario, contrasena } = req.body
+
+    const sql = `
+        SELECT u.id, u.NombreUsuario, p.NombreCompleto
+        FROM usuario u
+        INNER JOIN persona p ON u.id_per = p.id
+        WHERE u.NombreUsuario = ? AND u.Contraseña = ?
+    `
+    db.query(sql, [nombreUsuario, contrasena], (err, result) => {
+        if(err) return res.status(500).json({ error: "Error al iniciar sesión" })
+
+        if(result.length === 0) return res.status(401).json({ error: "Credenciales incorrectas" })
+        res.json({ 
+            token: "token-de-ejemplo",
+            user: {
+                id: result[0].id,
+                nombreUsuario: result[0].NombreUsuario,
+                nombreCompleto: result[0].NombreCompleto
+            }
+        })
+    })
+
+})
+
 app.post("/register", (req, res) => {
     const {nombreCompleto,nombreUsuario,fechaNac,correo,contrasena} = req.body
 

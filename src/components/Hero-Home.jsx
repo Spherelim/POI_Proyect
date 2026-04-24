@@ -8,7 +8,6 @@ function Hero(){
         <div className="Image-Wrapper"> 
 
         <div className= "Imagen-Fondo"></div>
-       
         <div className="Bienvenida">
             <h1>MundiChat!!</h1>
 
@@ -24,7 +23,7 @@ function Hero(){
                 <p>MAURICIO ELEUTERIO ORTIZ RODRIGUEZ (FRONTEND)</p>
                 <p>JOSE RAUL CORTEZ RICO (BACKEND)</p>
                 <p>IAN BEIL PÉREZ GONZÁLEZ (BACKEND)</p>
-             </div>
+            </div>
             <Developers/>
             <StartButton/>
         </div>
