@@ -24,9 +24,10 @@ function Sidebar({cambiarVista}){
             <ChatCard imagen={image} NomUser={NombreUsuario} ultmsg={mensaje} time={Timepo}
             abrirChat={()=>cambiarVista("chat")}
             />
-            <ChatCard imagen={image} NomUser={NombreUsuario} ultmsg={mensaje} time={Timepo}
+
+            {/* <ChatCard imagen={image} NomUser={NombreUsuario} ultmsg={mensaje} time={Timepo}
             abrirChat={()=>cambiarVista("chat")}
-            />
+            /> */}
             
 
             {/* <div className="chat-user">

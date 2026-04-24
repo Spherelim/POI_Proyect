@@ -18,6 +18,9 @@ import {socket}from "../socket"
 
 function Chat(){
 
+    const usuario = JSON.parse(localStorage.getItem("usuario"))
+    console.log("Usuario en Chat.jsx:", usuario)
+
     const [visita,setVista]=useState("chat")
 
     const [mostrarInfo,setMostrarInfo] = useState(false)
@@ -40,7 +43,7 @@ function Chat(){
 
         socket.emit("mensaje", {
             text:mensaje,
-            type:"right"
+            type:"left"
         })
         setMensaje("")
     }
@@ -78,7 +81,6 @@ function Chat(){
                     <>
                         <ChatHeader/>
                         <Settings/>
-
                     </>
                 )}
 
@@ -86,7 +88,6 @@ function Chat(){
                     <>
                         <ChatHeader/>
                         <Notificacion/>
-
                     </>
                 )}
 
@@ -94,7 +95,6 @@ function Chat(){
                     <>
                         <ChatHeader/>
                         <Tareas/>
-
                     </>
                 )}
 
@@ -102,7 +102,6 @@ function Chat(){
                     <>
                         <ChatHeader/>
                         <Solicitudes/>
-                        
                     </>
                 )}
 
