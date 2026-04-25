@@ -5,16 +5,37 @@ import { useState, useEffect } from "react"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo}){
+function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSidebar}){
 
     const usuario = JSON.parse(localStorage.getItem("usuario"))
     const [amigos, setAmigos] = useState([])
 
+    const cargarAmigos = async () => {
+        try {
+            const res = await fetch(`${API_URL}/amigos/${usuario.id}`)
+            const data = await res.json()
+            console.log("Amigos cargados:", data)
+            setAmigos(data)
+        } catch (error) {
+            console.error("Error cargando amigos:", error)
+        }
+    }
+
     useEffect(() => {
-        fetch(`${API_URL}/amigos/${usuario.id}`)
-            .then(r => r.json())
-            .then(data => setAmigos(data))
+        cargarAmigos()
     }, [])
+
+    useEffect(() => {
+        if (actualizarSidebar) {
+            cargarAmigos()
+        }
+    }, [actualizarSidebar])
+
+    const handleSeleccionarAmigo = (amigo) => {
+        console.log("Seleccionando amigo:", amigo)
+        seleccionarAmigo(amigo)
+        cambiarVista("chat")
+    }
 
     return(
         <div className="sidebar">
@@ -29,14 +50,11 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo}){
                 : amigos.map(amigo => (
                     <ChatCard
                         key={amigo.ID_Us}
-                        imagen="src/assets/images/A-1.jpg"
+                        imagen={amigo.imagen || null}
                         NomUser={amigo.NombreUsuario}
                         ultmsg="Toca para chatear"
                         time=""
-                        abrirChat={() => {
-                            seleccionarAmigo(amigo)
-                            cambiarVista("chat")
-                        }}
+                        abrirChat={() => handleSeleccionarAmigo(amigo)}
                     />
                 ))
             }

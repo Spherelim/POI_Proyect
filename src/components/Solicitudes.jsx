@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function Solicitudes({cerrar}){
+function Solicitudes({cerrar, onAmigoActualizado}){
     const usuario = JSON.parse(localStorage.getItem("usuario"))
     const [tab, setTab] = useState("buscar")
     const [busqueda, setBusqueda] = useState("")
@@ -11,10 +11,14 @@ function Solicitudes({cerrar}){
     const [solicitudes, setSolicitudes] = useState([])
 
     useEffect(() => {
-        fetch(`${API_URL}/solicitudes/${usuario.id}`)
-            .then(r => r.json())
-            .then(data => setSolicitudes(data))
+        cargarSolicitudes()
     }, [])
+
+    const cargarSolicitudes = async () => {
+        const res = await fetch(`${API_URL}/solicitudes/${usuario.id}`)
+        const data = await res.json()
+        setSolicitudes(data)
+    }
 
     useEffect(() => {
         if (!busqueda.trim()) {
@@ -47,6 +51,11 @@ function Solicitudes({cerrar}){
             body: JSON.stringify({ idAmistad, accion })
         })
         setSolicitudes(prev => prev.filter(s => s.ID_Amistad !== idAmistad))
+        
+        // Si se aceptó, notificar al sidebar que actualice amigos
+        if (accion === "aceptado" && onAmigoActualizado) {
+            onAmigoActualizado()
+        }
     }
 
     return(

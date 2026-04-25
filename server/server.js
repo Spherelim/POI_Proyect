@@ -181,22 +181,42 @@ function insertarMensaje(idCon, idEmisor, contenido, res) {
     )
 }
 
+// Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "..", "dist")))
 
-// ✅ Corregido para Express 5: usar /{*path} en lugar de *
-app.get("/{*path}", (req, res) => {
-    res.sendFile(path.join(__dirname, "..", "dist", "index.html"))
+// Para SPA - cualquier ruta no encontrada envía index.html
+app.use((req, res) => {
+    if (req.method === "GET") {
+        res.sendFile(path.join(__dirname, "..", "dist", "index.html"))
+    } else {
+        res.status(404).json({ error: "Ruta no encontrada" })
+    }
 })
 
 const io = new Server(server, {
     cors: { origin: "*" }
 })
 
+// Almacenar usuarios conectados
+const usuariosConectados = new Map()
+
 io.on("connection", (socket) => {
     console.log("Usuario conectado:", socket.id)
+    let usuarioIdActual = null
 
     socket.on("registrar", (idUsuario) => {
+        usuarioIdActual = idUsuario
         socket.join(`user_${idUsuario}`)
+        
+        usuariosConectados.set(idUsuario, socket.id)
+        
+        socket.broadcast.emit(`user_status_${idUsuario}`, "online")
+        console.log(`Usuario ${idUsuario} está online`)
+    })
+
+    socket.on("check_status", (idUsuario, callback) => {
+        const isOnline = usuariosConectados.has(idUsuario)
+        if (callback) callback(isOnline)
     })
 
     socket.on("mensaje", (data) => {
@@ -213,6 +233,15 @@ io.on("connection", (socket) => {
 
     socket.on("ice-candidate", ({to, candidate}) => {
         io.to(to).emit("ice-candidate", candidate)
+    })
+
+    socket.on("disconnect", () => {
+        if (usuarioIdActual) {
+            usuariosConectados.delete(usuarioIdActual)
+            socket.broadcast.emit(`user_status_${usuarioIdActual}`, "offline")
+            console.log(`Usuario ${usuarioIdActual} está offline`)
+        }
+        console.log("Usuario desconectado:", socket.id)
     })
 })
 
