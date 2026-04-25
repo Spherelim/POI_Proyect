@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 import "./Singup.css"
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+
 function SingUp(){
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
@@ -27,7 +29,7 @@ const registrar = async () => {
     }
 
     try {
-        const response = await fetch("http://localhost:3000/register", {
+        const response = await fetch(`${API_URL}/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -54,10 +56,9 @@ const registrar = async () => {
 }
 
     return(
-
         <div className="Image-Wrapper-Registro"> 
 
-            <div className= "Imagen-Fondo-Registro"></div>
+            <div className="Imagen-Fondo-Registro"></div>
 
             <div className="Sing">
                 <div className="Content">
@@ -70,35 +71,35 @@ const registrar = async () => {
 
                     <h1 className="Registrar">Registrar</h1>
                     <input 
-                    type="text" 
-                    placeholder="Nombre Completo" 
-                    value={formData.nombreCompleto}
-                    onChange={(e) => setFormData({...formData, nombreCompleto: e.target.value})}
+                        type="text" 
+                        placeholder="Nombre Completo" 
+                        value={formData.nombreCompleto}
+                        onChange={(e) => setFormData({...formData, nombreCompleto: e.target.value})}
                     />
                     <input 
-                    type="text" 
-                    placeholder="Nombre de Usuario" 
-                    value={formData.nombreUsuario}
-                    onChange={(e) => setFormData({...formData, nombreUsuario: e.target.value})}
+                        type="text" 
+                        placeholder="Nombre de Usuario" 
+                        value={formData.nombreUsuario}
+                        onChange={(e) => setFormData({...formData, nombreUsuario: e.target.value})}
                     />
                     <input 
-                    type="email" 
-                    placeholder="Correo Electronico" 
-                    value={formData.correo}
-                    onChange={(e) => setFormData({...formData, correo: e.target.value})}
+                        type="email" 
+                        placeholder="Correo Electronico" 
+                        value={formData.correo}
+                        onChange={(e) => setFormData({...formData, correo: e.target.value})}
                     />
                     <input 
-                    type="password" 
-                    placeholder="Contraseña" 
-                    value={formData.contrasena}
-                    onChange={(e) => setFormData({...formData, contrasena: e.target.value})}
+                        type="password" 
+                        placeholder="Contraseña" 
+                        value={formData.contrasena}
+                        onChange={(e) => setFormData({...formData, contrasena: e.target.value})}
                     />
                     <p>Fecha de Nacimiento</p>
                     <input 
-                    type="date" 
-                    placeholder="Fecha de Nacimiento" 
-                    value={formData.fechaNac}
-                    onChange={(e) => setFormData({...formData, fechaNac: e.target.value})}
+                        type="date" 
+                        placeholder="Fecha de Nacimiento" 
+                        value={formData.fechaNac}
+                        onChange={(e) => setFormData({...formData, fechaNac: e.target.value})}
                     />
                     <button className="Btn-Registrar" onClick={registrar}>Register</button>
                 </div>

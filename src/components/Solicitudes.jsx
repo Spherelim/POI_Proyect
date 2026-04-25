@@ -1,6 +1,8 @@
 import "./Solicitudes.css"
 import { useState, useEffect } from "react"
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+
 function Solicitudes({cerrar}){
     const usuario = JSON.parse(localStorage.getItem("usuario"))
     const [tab, setTab] = useState("buscar")
@@ -9,7 +11,7 @@ function Solicitudes({cerrar}){
     const [solicitudes, setSolicitudes] = useState([])
 
     useEffect(() => {
-        fetch(`http://localhost:3000/solicitudes/${usuario.id}`)
+        fetch(`${API_URL}/solicitudes/${usuario.id}`)
             .then(r => r.json())
             .then(data => setSolicitudes(data))
     }, [])
@@ -20,7 +22,7 @@ function Solicitudes({cerrar}){
             return
         }
         const timeout = setTimeout(async () => {
-            const res = await fetch(`http://localhost:3000/usuarios/buscar?q=${busqueda}&idUsuario=${usuario.id}`)
+            const res = await fetch(`${API_URL}/usuarios/buscar?q=${busqueda}&idUsuario=${usuario.id}`)
             const data = await res.json()
             setResultados(data)
         }, 300)
@@ -28,18 +30,18 @@ function Solicitudes({cerrar}){
     }, [busqueda])
 
     const enviarSolicitud = async (idReceptor) => {
-        await fetch("http://localhost:3000/solicitud/enviar", {
+        await fetch(`${API_URL}/solicitud/enviar`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ idEmisor: usuario.id, idReceptor })
         })
-        const res = await fetch(`http://localhost:3000/usuarios/buscar?q=${busqueda}&idUsuario=${usuario.id}`)
+        const res = await fetch(`${API_URL}/usuarios/buscar?q=${busqueda}&idUsuario=${usuario.id}`)
         const data = await res.json()
         setResultados(data)
     }
 
     const responder = async (idAmistad, accion) => {
-        await fetch("http://localhost:3000/solicitud/responder", {
+        await fetch(`${API_URL}/solicitud/responder`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ idAmistad, accion })

@@ -13,6 +13,8 @@ import Solicitudes from "../components/Solicitudes"
 import { useEffect, useState, useRef } from "react"
 import { socket } from "../socket"
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+
 function Chat(){
     const usuario = JSON.parse(localStorage.getItem("usuario"))
 
@@ -25,31 +27,27 @@ function Chat(){
     const [mensajes, setMensajes] = useState([])
     const mensajesEndRef = useRef(null)
 
-    // Mantener ref sincronizada con el estado
     useEffect(() => {
         amigoActivoRef.current = amigoActivo
     }, [amigoActivo])
 
-    // Scroll al último mensaje
     useEffect(() => {
         mensajesEndRef.current?.scrollIntoView({ behavior: "smooth" })
     }, [mensajes])
 
-    // Cargar mensajes cuando cambia el amigo activo
     useEffect(() => {
         if (!amigoActivo) return
         setMensajes([])
         cargarMensajes()
     }, [amigoActivo])
 
-    // Registrar usuario en socket al entrar al chat
     useEffect(() => {
         socket.emit("registrar", usuario.id)
     }, [])
 
     const cargarMensajes = async () => {
         if (!amigoActivoRef.current) return
-        const res = await fetch(`http://localhost:3000/mensajes/${usuario.id}/${amigoActivoRef.current.ID_Us}`)
+        const res = await fetch(`${API_URL}/mensajes/${usuario.id}/${amigoActivoRef.current.ID_Us}`)
         const data = await res.json()
         const formateados = data.map(m => ({
             text: m.mensaje,
@@ -58,7 +56,6 @@ function Chat(){
         setMensajes(formateados)
     }
 
-    // Socket para mensajes en tiempo real
     useEffect(() => {
         socket.on("mensaje", (data) => {
             const amigoActual = amigoActivoRef.current
@@ -75,7 +72,7 @@ function Chat(){
         const textoEnviar = mensaje
         setMensaje("")
 
-        await fetch("http://localhost:3000/mensajes/enviar", {
+        await fetch(`${API_URL}/mensajes/enviar`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

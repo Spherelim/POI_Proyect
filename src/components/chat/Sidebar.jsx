@@ -3,13 +3,15 @@ import ChatCard from "./ChatCard"
 import "./Sidebar.css"
 import { useState, useEffect } from "react"
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+
 function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo}){
 
     const usuario = JSON.parse(localStorage.getItem("usuario"))
     const [amigos, setAmigos] = useState([])
 
     useEffect(() => {
-        fetch(`http://localhost:3000/amigos/${usuario.id}`)
+        fetch(`${API_URL}/amigos/${usuario.id}`)
             .then(r => r.json())
             .then(data => setAmigos(data))
     }, [])

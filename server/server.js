@@ -2,9 +2,15 @@ const express = require("express")
 const http = require("http")
 const { Server } = require("socket.io")
 const cors = require("cors")
+const path = require("path")
 
 const app = express()
 app.use(cors())
+
+app.use((req, res, next) => {
+    res.setHeader("ngrok-skip-browser-warning", "true")
+    next()
+})
 
 const server = http.createServer(app)
 
@@ -14,7 +20,6 @@ app.use(express.json())
 
 app.post("/login", (req, res) => {
     const { nombreUsuario, contrasena } = req.body
-
     const sql = `
         SELECT u.ID_Us, u.NombreUsuario, p.NombreCompleto
         FROM usuario u
@@ -23,7 +28,6 @@ app.post("/login", (req, res) => {
     `
     db.query(sql, [nombreUsuario, contrasena], (err, result) => {
         if(err) return res.status(500).json({ error: "Error al iniciar sesión" })
-
         if(result.length === 0) return res.status(401).json({ error: "Credenciales incorrectas" })
         res.json({ 
             token: "token-de-ejemplo",
@@ -34,31 +38,19 @@ app.post("/login", (req, res) => {
             }
         })
     })
-
 })
 
 app.post("/register", (req, res) => {
     const {nombreCompleto,nombreUsuario,fechaNac,correo,contrasena} = req.body
-
-    const sqlPersona = `
-        INSERT INTO persona (NombreCompleto, FechaNac)
-        VALUES (?, ?)
-    `
-
+    const sqlPersona = `INSERT INTO persona (NombreCompleto, FechaNac) VALUES (?, ?)`
     db.query(sqlPersona, [nombreCompleto, fechaNac], (err, result) => {
         if (err) {
             console.error("Error al insertar persona:", err)
             return res.status(500).json({ error: "Error al registrar usuario" })
         }
-
         const personaId = result.insertId
-
-        const sqlUsuario = `
-            INSERT INTO usuario (NombreUsuario, Correo, Contraseña, id_per)
-            VALUES (?, ?, ?, ?)
-        `
-
-        db.query(sqlUsuario, [nombreUsuario,correo, contrasena, personaId], (err) => {
+        const sqlUsuario = `INSERT INTO usuario (NombreUsuario, Correo, Contraseña, id_per) VALUES (?, ?, ?, ?)`
+        db.query(sqlUsuario, [nombreUsuario, correo, contrasena, personaId], (err) => {
             if (err) {
                 console.error("Error al insertar usuario:", err)
                 return res.status(500).json({ error: "Error al registrar usuario" })
@@ -66,10 +58,8 @@ app.post("/register", (req, res) => {
             return res.status(201).json({ message: "Usuario registrado exitosamente" })
         })
     })
-
 })
 
-// Buscar usuarios para agregar 
 app.get("/usuarios/buscar", (req, res) => {
     const { q, idUsuario } = req.query
     const sql = `
@@ -87,7 +77,6 @@ app.get("/usuarios/buscar", (req, res) => {
     })
 })
 
-//Buscar amigos agregados
 app.get("/amigos/:idUsuario", (req, res) => {
     const idUsuario = parseInt(req.params.idUsuario)
     const sql = `
@@ -105,19 +94,15 @@ app.get("/amigos/:idUsuario", (req, res) => {
     })
 })
 
-// Enviar solicitud
 app.post("/solicitud/enviar", (req, res) => {
     const { idEmisor, idReceptor } = req.body
-    const sql = `
-        INSERT INTO amistad (usuario1, usuario2, estado) VALUES (?, ?, 'pendiente')
-    `
+    const sql = `INSERT INTO amistad (usuario1, usuario2, estado) VALUES (?, ?, 'pendiente')`
     db.query(sql, [idEmisor, idReceptor], (err) => {
         if (err) return res.status(500).json({ error: "Error al enviar solicitud" })
         res.json({ message: "Solicitud enviada" })
     })
 })
 
-// Ver solicitudes recibidas
 app.get("/solicitudes/:idUsuario", (req, res) => {
     const { idUsuario } = req.params
     const sql = `
@@ -132,9 +117,8 @@ app.get("/solicitudes/:idUsuario", (req, res) => {
     })
 })
 
-// Aceptar o rechazar solicitud
 app.put("/solicitud/responder", (req, res) => {
-    const { idAmistad, accion } = req.body  // accion: 'aceptado' o 'rechazado'
+    const { idAmistad, accion } = req.body
     const sql = `UPDATE amistad SET estado = ? WHERE ID_Amistad = ?`
     db.query(sql, [accion, idAmistad], (err) => {
         if (err) return res.status(500).json({ error: "Error al responder solicitud" })
@@ -142,7 +126,6 @@ app.put("/solicitud/responder", (req, res) => {
     })
 })
 
-// Obtener mensajes entre dos usuarios
 app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
     const { idUsuario, idAmigo } = req.params
     const sql = `
@@ -158,11 +141,8 @@ app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
     })
 })
 
-
-// Enviar mensaje
 app.post("/mensajes/enviar", (req, res) => {
     const { idEmisor, idReceptor, contenido } = req.body
-
     const sqlBuscar = `
         SELECT cu1.id_conversacion FROM conversacion_usuario cu1
         INNER JOIN conversacion_usuario cu2 ON cu1.id_conversacion = cu2.id_conversacion
@@ -171,7 +151,6 @@ app.post("/mensajes/enviar", (req, res) => {
     `
     db.query(sqlBuscar, [idEmisor, idReceptor], (err, result) => {
         if (err) return res.status(500).json({ error: "Error" })
-
         if (result.length > 0) {
             insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res)
         } else {
@@ -190,7 +169,7 @@ app.post("/mensajes/enviar", (req, res) => {
         }
     })
 })
-// Función para insertar mensaje en la base de datos
+
 function insertarMensaje(idCon, idEmisor, contenido, res) {
     db.query(
         "INSERT INTO mensaje (id_conversacion, id_remitente, mensaje, fechaCreacion) VALUES (?, ?, ?, NOW())",
@@ -202,11 +181,15 @@ function insertarMensaje(idCon, idEmisor, contenido, res) {
     )
 }
 
+app.use(express.static(path.join(__dirname, "..", "dist")))
+
+// ✅ Corregido para Express 5: usar /{*path} en lugar de *
+app.get("/{*path}", (req, res) => {
+    res.sendFile(path.join(__dirname, "..", "dist", "index.html"))
+})
 
 const io = new Server(server, {
-    cors: {
-        origin: "*"
-    }
+    cors: { origin: "*" }
 })
 
 io.on("connection", (socket) => {

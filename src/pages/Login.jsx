@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 import "./Login.css"
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+
 function Login(){
     const navigate = useNavigate();
 
@@ -16,7 +18,7 @@ function Login(){
         }
 
         try{
-            const response = await fetch("http://localhost:3000/login", {
+            const response = await fetch(`${API_URL}/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -34,23 +36,19 @@ function Login(){
                 return;
             }
 
-            console.log("Usuario logueado exitosamente:", data)
-            
-            localStorage.setItem("usuario",JSON.stringify(data.user))
-
+            localStorage.setItem("usuario", JSON.stringify(data.user))
             navigate("/Chat")
 
         }catch(error){
             console.error("Error al iniciar sesión:", error)
-            return;
+            alert("No se pudo conectar al servidor.")
         }
-
     }
 
     return(
         <div className="Image-Wrapper-Login"> 
 
-            <div className= "Imagen-Fondo-Login"></div>
+            <div className="Imagen-Fondo-Login"></div>
             
             <div className="Log">
                 <div className="Content">
