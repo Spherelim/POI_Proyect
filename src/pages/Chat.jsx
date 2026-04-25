@@ -4,111 +4,187 @@ import Sidebar from "../components/chat/Sidebar"
 import ChatHeader from "../components/chat/ChatHeader"
 import ChatInput from "../components/chat/ChatInput"
 import Message from "../components/chat/Message"
-
 import ChatInfoPanel from "../components/chat/ChatInfoPanel"
-
 import Settings from "../components/Settings"
 import Notificacion from "../components/Notificacion"
 import Tareas from "../components/Tareas"
 import Solicitudes from "../components/Solicitudes"
 
-//vamos a ver como jala esta madre
-import {useEffect,useState} from "react"
-import {socket}from "../socket"
+import { useEffect, useState, useRef } from "react"
+import { socket } from "../socket"
 
 function Chat(){
-
     const usuario = JSON.parse(localStorage.getItem("usuario"))
-    console.log("Usuario en Chat.jsx:", usuario)
 
-    const [visita,setVista]=useState("chat")
+    const [visita, setVista] = useState("chat")
+    const [mostrarInfo, setMostrarInfo] = useState(false)
+    const [mostrarSolicitudes, setMostrarSolicitudes] = useState(false)
+    const [amigoActivo, setAmigoActivo] = useState(null)
+    const amigoActivoRef = useRef(null)
+    const [mensaje, setMensaje] = useState("")
+    const [mensajes, setMensajes] = useState([])
+    const mensajesEndRef = useRef(null)
 
-    const [mostrarInfo,setMostrarInfo] = useState(false)
-
-    const [mensaje,setMensaje]=useState("")
-    const [mensajes,setMensajes]=useState([])
-
+    // Mantener ref sincronizada con el estado
     useEffect(() => {
-        socket.on("mensaje", (data) => {
-            setMensajes((prev) => [...prev, data])
-        })
+        amigoActivoRef.current = amigoActivo
+    }, [amigoActivo])
 
-        return () => {
-            socket.off("mensaje")
-        }
+    // Scroll al último mensaje
+    useEffect(() => {
+        mensajesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }, [mensajes])
+
+    // Cargar mensajes cuando cambia el amigo activo
+    useEffect(() => {
+        if (!amigoActivo) return
+        setMensajes([])
+        cargarMensajes()
+    }, [amigoActivo])
+
+    // Registrar usuario en socket al entrar al chat
+    useEffect(() => {
+        socket.emit("registrar", usuario.id)
     }, [])
 
-    const enviarMensaje = () => {
-        if (mensaje.trim() === "") return
-
-        socket.emit("mensaje", {
-            text:mensaje,
-            type:"left"
-        })
-        setMensaje("")
+    const cargarMensajes = async () => {
+        if (!amigoActivoRef.current) return
+        const res = await fetch(`http://localhost:3000/mensajes/${usuario.id}/${amigoActivoRef.current.ID_Us}`)
+        const data = await res.json()
+        const formateados = data.map(m => ({
+            text: m.mensaje,
+            type: m.id_remitente === usuario.id ? "right" : "left"
+        }))
+        setMensajes(formateados)
     }
 
-    // no pongan mensajes adentro xd, se muestran aksdjaskd
+    // Socket para mensajes en tiempo real
+    useEffect(() => {
+        socket.on("mensaje", (data) => {
+            const amigoActual = amigoActivoRef.current
+            if (amigoActual && data.idEmisor === amigoActual.ID_Us) {
+                setMensajes(prev => [...prev, { text: data.text, type: "left" }])
+            }
+        })
+        return () => { socket.off("mensaje") }
+    }, [])
+
+    const enviarMensaje = async () => {
+        if (mensaje.trim() === "" || !amigoActivo) return
+
+        const textoEnviar = mensaje
+        setMensaje("")
+
+        await fetch("http://localhost:3000/mensajes/enviar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                idEmisor: usuario.id,
+                idReceptor: amigoActivo.ID_Us,
+                contenido: textoEnviar
+            })
+        })
+
+        socket.emit("mensaje", {
+            text: textoEnviar,
+            idEmisor: usuario.id,
+            idReceptor: amigoActivo.ID_Us
+        })
+
+        setMensajes(prev => [...prev, { text: textoEnviar, type: "right" }])
+    }
+
+    const NoChatSeleccionado = () => (
+        <div style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "15px",
+            background: "rgba(0,0,0,0.15)"
+        }}>
+            <div style={{
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.15)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                fontSize: "35px"
+            }}>💬</div>
+            <p style={{color:"rgba(255,255,255,0.5)", fontSize:"16px", margin:0}}>
+                Selecciona un chat para comenzar
+            </p>
+        </div>
+    )
+
     return (
         <div className="Content-Chat">
-            <Sidebar cambiarVista={setVista}/>
+            <Sidebar
+                cambiarVista={setVista}
+                abrirSolicitudes={() => setMostrarSolicitudes(true)}
+                seleccionarAmigo={(amigo) => {
+                    setAmigoActivo(amigo)
+                    setVista("chat")
+                }}
+            />
 
             <div className="Chat-area">
-                
-                {visita === "chat" &&(
+
+                {visita === "chat" && (
                     <>
-                        <ChatHeader abrirInfo={()=>setMostrarInfo(true)}/>
-
-                        <div className="chat-messages">
-                            {mensajes.map((msg,index) => (
-                                <Message 
-                                    key={index} 
-                                    text={msg.text} 
-                                    type={msg.type}
+                        {amigoActivo ? (
+                            <>
+                                <ChatHeader abrirInfo={() => setMostrarInfo(true)} amigo={amigoActivo}/>
+                                <div className="chat-messages">
+                                    {mensajes.map((msg, index) => (
+                                        <Message key={index} text={msg.text} type={msg.type}/>
+                                    ))}
+                                    <div ref={mensajesEndRef}/>
+                                </div>
+                                <ChatInput
+                                    mensaje={mensaje}
+                                    setMensaje={setMensaje}
+                                    enviarMensaje={enviarMensaje}
                                 />
-                            ))}
-                        </div>
-
-                        <ChatInput
-                            mensaje={mensaje}
-                            setMensaje={setMensaje}
-                            enviarMensaje={enviarMensaje}
-                        />
+                            </>
+                        ) : (
+                            <NoChatSeleccionado/>
+                        )}
                     </>
                 )}
 
                 {visita === "ajustes" && (
                     <>
-                        <ChatHeader/>
+                        <ChatHeader amigo={amigoActivo}/>
                         <Settings/>
                     </>
                 )}
 
                 {visita === "noti" && (
                     <>
-                        <ChatHeader/>
+                        <ChatHeader amigo={amigoActivo}/>
                         <Notificacion/>
                     </>
                 )}
 
                 {visita === "tareas" && (
                     <>
-                        <ChatHeader/>
+                        <ChatHeader amigo={amigoActivo}/>
                         <Tareas/>
-                    </>
-                )}
-
-                {visita === "soli" && (
-                    <>
-                        <ChatHeader/>
-                        <Solicitudes/>
                     </>
                 )}
 
             </div>
 
             {mostrarInfo && (
-                <ChatInfoPanel cerrarInfo={()=>setMostrarInfo(false)}/>
+                <ChatInfoPanel cerrarInfo={() => setMostrarInfo(false)}/>
+            )}
+
+            {mostrarSolicitudes && (
+                <Solicitudes cerrar={() => setMostrarSolicitudes(false)}/>
             )}
 
         </div>

@@ -1,44 +1,43 @@
 import PerfilCard from "./PerfilCard";
 import ChatCard from "./ChatCard"
-
 import "./Sidebar.css"
+import { useState, useEffect } from "react"
 
-function Sidebar({cambiarVista}){
-    
-    let image="src/assets/images/A-1.jpg"
-    let NombreUsuario="M_Chetto"
-    let mensaje = "Tú:Hola"
-    let Timepo = "11:02 p.m."
+function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo}){
+
+    const usuario = JSON.parse(localStorage.getItem("usuario"))
+    const [amigos, setAmigos] = useState([])
+
+    useEffect(() => {
+        fetch(`http://localhost:3000/amigos/${usuario.id}`)
+            .then(r => r.json())
+            .then(data => setAmigos(data))
+    }, [])
 
     return(
         <div className="sidebar">
+            <PerfilCard cambiarVista={cambiarVista} abrirSolicitudes={abrirSolicitudes}/>
 
-            <PerfilCard cambiarVista={cambiarVista}/>
+            <input className="search" placeholder="Busca un chat..."/>
 
-            <input 
-            className="search"
-            placeholder="Busca un chat..." 
-            />
-
-            {/* Es lo mismo que abajo pero como componente */}
-            <ChatCard imagen={image} NomUser={NombreUsuario} ultmsg={mensaje} time={Timepo}
-            abrirChat={()=>cambiarVista("chat")}
-            />
-
-            {/* <ChatCard imagen={image} NomUser={NombreUsuario} ultmsg={mensaje} time={Timepo}
-            abrirChat={()=>cambiarVista("chat")}
-            /> */}
-            
-
-            {/* <div className="chat-user">
-                <img src={imagen} alt="Img_User" />
-                <div>
-                    <p>User Name</p>
-                    <span>Tú:Hola</span>
-                </div>
-                <span className="time">Ayer</span>
-            </div> */}
-
+            {amigos.length === 0
+                ? <p style={{color:"rgba(255,255,255,0.5)", fontSize:"13px", textAlign:"center", marginTop:"20px"}}>
+                    No tienes amigos aún
+                  </p>
+                : amigos.map(amigo => (
+                    <ChatCard
+                        key={amigo.ID_Us}
+                        imagen="src/assets/images/A-1.jpg"
+                        NomUser={amigo.NombreUsuario}
+                        ultmsg="Toca para chatear"
+                        time=""
+                        abrirChat={() => {
+                            seleccionarAmigo(amigo)
+                            cambiarVista("chat")
+                        }}
+                    />
+                ))
+            }
         </div>
     )
 }

@@ -69,6 +69,139 @@ app.post("/register", (req, res) => {
 
 })
 
+// Buscar usuarios para agregar 
+app.get("/usuarios/buscar", (req, res) => {
+    const { q, idUsuario } = req.query
+    const sql = `
+        SELECT u.ID_Us, u.NombreUsuario,
+            (SELECT estado FROM amistad 
+             WHERE (usuario1 = ? AND usuario2 = u.ID_Us)
+             OR (usuario1 = u.ID_Us AND usuario2 = ?)
+             LIMIT 1) AS estadoAmistad
+        FROM usuario u
+        WHERE u.NombreUsuario LIKE ? AND u.ID_Us != ?
+    `
+    db.query(sql, [idUsuario, idUsuario, `%${q}%`, idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al buscar" })
+        res.json(result)
+    })
+})
+
+//Buscar amigos agregados
+app.get("/amigos/:idUsuario", (req, res) => {
+    const idUsuario = parseInt(req.params.idUsuario)
+    const sql = `
+        SELECT u.ID_Us, u.NombreUsuario
+        FROM amistad a
+        INNER JOIN usuario u ON (
+            (a.usuario1 = ? AND a.usuario2 = u.ID_Us) OR
+            (a.usuario2 = ? AND a.usuario1 = u.ID_Us)
+        )
+        WHERE (a.usuario1 = ? OR a.usuario2 = ?) AND a.estado = 'aceptado'
+    `
+    db.query(sql, [idUsuario, idUsuario, idUsuario, idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener amigos" })
+        res.json(result)
+    })
+})
+
+// Enviar solicitud
+app.post("/solicitud/enviar", (req, res) => {
+    const { idEmisor, idReceptor } = req.body
+    const sql = `
+        INSERT INTO amistad (usuario1, usuario2, estado) VALUES (?, ?, 'pendiente')
+    `
+    db.query(sql, [idEmisor, idReceptor], (err) => {
+        if (err) return res.status(500).json({ error: "Error al enviar solicitud" })
+        res.json({ message: "Solicitud enviada" })
+    })
+})
+
+// Ver solicitudes recibidas
+app.get("/solicitudes/:idUsuario", (req, res) => {
+    const { idUsuario } = req.params
+    const sql = `
+        SELECT a.ID_Amistad, u.ID_Us, u.NombreUsuario
+        FROM amistad a
+        INNER JOIN usuario u ON a.usuario1 = u.ID_Us
+        WHERE a.usuario2 = ? AND a.estado = 'pendiente'
+    `
+    db.query(sql, [idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener solicitudes" })
+        res.json(result)
+    })
+})
+
+// Aceptar o rechazar solicitud
+app.put("/solicitud/responder", (req, res) => {
+    const { idAmistad, accion } = req.body  // accion: 'aceptado' o 'rechazado'
+    const sql = `UPDATE amistad SET estado = ? WHERE ID_Amistad = ?`
+    db.query(sql, [accion, idAmistad], (err) => {
+        if (err) return res.status(500).json({ error: "Error al responder solicitud" })
+        res.json({ message: `Solicitud ${accion}` })
+    })
+})
+
+// Obtener mensajes entre dos usuarios
+app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
+    const { idUsuario, idAmigo } = req.params
+    const sql = `
+        SELECT m.ID_Mensaje, m.mensaje, m.fechaCreacion, m.id_remitente
+        FROM mensaje m
+        INNER JOIN conversacion_usuario cu1 ON cu1.id_conversacion = m.id_conversacion AND cu1.id_usuario = ?
+        INNER JOIN conversacion_usuario cu2 ON cu2.id_conversacion = m.id_conversacion AND cu2.id_usuario = ?
+        ORDER BY m.fechaCreacion ASC
+    `
+    db.query(sql, [idUsuario, idAmigo], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener mensajes" })
+        res.json(result)
+    })
+})
+
+
+// Enviar mensaje
+app.post("/mensajes/enviar", (req, res) => {
+    const { idEmisor, idReceptor, contenido } = req.body
+
+    const sqlBuscar = `
+        SELECT cu1.id_conversacion FROM conversacion_usuario cu1
+        INNER JOIN conversacion_usuario cu2 ON cu1.id_conversacion = cu2.id_conversacion
+        WHERE cu1.id_usuario = ? AND cu2.id_usuario = ?
+        LIMIT 1
+    `
+    db.query(sqlBuscar, [idEmisor, idReceptor], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error" })
+
+        if (result.length > 0) {
+            insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res)
+        } else {
+            db.query("INSERT INTO conversacion () VALUES ()", (err, r) => {
+                if (err) return res.status(500).json({ error: "Error al crear conversación" })
+                const idCon = r.insertId
+                db.query(
+                    "INSERT INTO conversacion_usuario (id_conversacion, id_usuario) VALUES (?, ?), (?, ?)",
+                    [idCon, idEmisor, idCon, idReceptor],
+                    (err) => {
+                        if (err) return res.status(500).json({ error: "Error" })
+                        insertarMensaje(idCon, idEmisor, contenido, res)
+                    }
+                )
+            })
+        }
+    })
+})
+// Función para insertar mensaje en la base de datos
+function insertarMensaje(idCon, idEmisor, contenido, res) {
+    db.query(
+        "INSERT INTO mensaje (id_conversacion, id_remitente, mensaje, fechaCreacion) VALUES (?, ?, ?, NOW())",
+        [idCon, idEmisor, contenido],
+        (err) => {
+            if (err) return res.status(500).json({ error: "Error al insertar mensaje" })
+            res.json({ message: "Mensaje enviado" })
+        }
+    )
+}
+
 
 const io = new Server(server, {
     cors: {
@@ -79,24 +212,20 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
     console.log("Usuario conectado:", socket.id)
 
+    socket.on("registrar", (idUsuario) => {
+        socket.join(`user_${idUsuario}`)
+    })
+
     socket.on("mensaje", (data) => {
-        io.emit("mensaje", {
-            text: data.text,
-            type: "left"
-        })
+        io.to(`user_${data.idReceptor}`).emit("mensaje", data)
     })
 
     socket.on("call-user", ({to, offer}) => {
-        io.to(to).emit("incoming-call", {
-            from: socket.id,
-            offer
-        })
+        io.to(to).emit("incoming-call", { from: socket.id, offer })
     })
 
     socket.on("answer-call", ({to, answer}) => {
-        io.to(to).emit("call-answered", {
-            answer
-        })
+        io.to(to).emit("call-answered", { answer })
     })
 
     socket.on("ice-candidate", ({to, candidate}) => {

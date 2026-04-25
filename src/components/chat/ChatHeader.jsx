@@ -6,6 +6,8 @@ function ChatHeader({abrirInfo}){
 
     const [mostrarAlert,setMostrarAlert]=useState(false)
 
+    const usuario = JSON.parse(localStorage.getItem("usuario"))
+
     let imagen="/src/assets/images/A-1.jpg"
 
     const Llamar = "/src/assets/icons/Llamada/llamada-telefonica 1 (w).png"
