@@ -16,9 +16,9 @@ app.post("/login", (req, res) => {
     const { nombreUsuario, contrasena } = req.body
 
     const sql = `
-        SELECT u.id, u.NombreUsuario, p.NombreCompleto
+        SELECT u.ID_Us, u.NombreUsuario, p.NombreCompleto
         FROM usuario u
-        INNER JOIN persona p ON u.id_per = p.id
+        INNER JOIN persona p ON u.id_per = p.ID_Per
         WHERE u.NombreUsuario = ? AND u.Contraseña = ?
     `
     db.query(sql, [nombreUsuario, contrasena], (err, result) => {
@@ -28,7 +28,7 @@ app.post("/login", (req, res) => {
         res.json({ 
             token: "token-de-ejemplo",
             user: {
-                id: result[0].id,
+                id: result[0].ID_Us,
                 nombreUsuario: result[0].NombreUsuario,
                 nombreCompleto: result[0].NombreCompleto
             }

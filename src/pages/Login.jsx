@@ -22,7 +22,7 @@ function Login(){
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    nombre,
+                    nombreUsuario: nombre,
                     contrasena
                 })
             })

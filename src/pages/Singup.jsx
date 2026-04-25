@@ -12,28 +12,24 @@ function SingUp(){
         contrasena: ""
     });
 
-    const registrar = async () => {
+const registrar = async () => {
+    if (!formData.nombreCompleto || !formData.nombreUsuario || !formData.fechaNac || !formData.correo || !formData.contrasena) {
+        alert("Por favor, completa todos los campos.")
+        return;
+    }
+    if (formData.contrasena.length < 8) {
+        alert("La contraseña debe tener al menos 8 caracteres.")
+        return;
+    }
+    if (!/\S+@\S+\.\S+/.test(formData.correo)) {
+        alert("Por favor, ingresa un correo electrónico válido.")
+        return;
+    }
 
-        if (!formData.nombreCompleto || !formData.nombreUsuario || !formData.fechaNac || !formData.correo || !formData.contrasena) {
-            alert("Por favor, completa todos los campos.")
-            return;
-        }
-
-        if (formData.contrasena.length < 8) {
-            alert("La contraseña debe tener al menos 8 caracteres.")
-            return;
-        }
-
-        if (!/\S+@\S+\.\S+/.test(formData.correo)) {
-            alert("Por favor, ingresa un correo electrónico válido.")
-            return;
-        }
-
-        await fetch("http://localhost:3000/register", {
+    try {
+        const response = await fetch("http://localhost:3000/register", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 nombreCompleto: formData.nombreCompleto,
                 nombreUsuario: formData.nombreUsuario,
@@ -42,18 +38,20 @@ function SingUp(){
                 fechaNac: formData.fechaNac
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log("Respuesta del servidor:", data)
-        })
-        .catch(error => {
-            console.error("Error al registrar usuario:", error)
-            return;
-        })
 
-        console.log("Usuario registrado exitosamente")
-        navigate("/Chat")
+        const data = await response.json()
+
+        if (!response.ok) {
+            alert(data.error || "Error al registrar usuario.")
+            return;
+        }
+
+        navigate("/Login")
+    } catch (error) {
+        console.error("Error:", error)
+        alert("No se pudo conectar al servidor.")
     }
+}
 
     return(
 
