@@ -13,6 +13,15 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
+.Chat-Card svg {
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    margin-right:10px;
+    background: rgba(255,255,255,0.2);
+    padding: 8px;
+}
+
 .Chat-Card img{
     width:45px;
     height:45px;
@@ -29,12 +38,14 @@
 .Chat-Card p {
     margin: 0;
     font-size: 14px;
+    color: white;
 }
 
 .Chat-Card span {
     font-size: 12px;
     opacity: 0.8;
     display: block;
+    color: white;
 }
 
 .time {
