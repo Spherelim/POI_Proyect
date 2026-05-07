@@ -53,7 +53,6 @@ function UserPerfil(){
                 <div className="Fecha">
                     <p className="FechaIngreso">{FechaIngreso}</p>
                 </div>
-
             </div>
 
             {AlertData &&(

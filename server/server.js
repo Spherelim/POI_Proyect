@@ -1,3 +1,5 @@
+require("dotenv").config()
+
 const express = require("express")
 const http = require("http")
 const { Server } = require("socket.io")
@@ -182,12 +184,12 @@ function insertarMensaje(idCon, idEmisor, contenido, res) {
 }
 
 // Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, "..", "dist")))
+app.use(express.static(path.join(__dirname, "..", process.env.CARPETA)))
 
 // Para SPA - cualquier ruta no encontrada envía index.html
 app.use((req, res) => {
     if (req.method === "GET") {
-        res.sendFile(path.join(__dirname, "..", "dist", "index.html"))
+        res.sendFile(path.join(__dirname, "..", process.env.CARPETA, "index.html"))
     } else {
         res.status(404).json({ error: "Ruta no encontrada" })
     }
