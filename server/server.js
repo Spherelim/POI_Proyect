@@ -43,24 +43,132 @@ app.post("/login", (req, res) => {
 })
 
 app.post("/register", (req, res) => {
-    const {nombreCompleto,nombreUsuario,fechaNac,correo,contrasena} = req.body
-    const sqlPersona = `INSERT INTO persona (NombreCompleto, FechaNac) VALUES (?, ?)`
+
+    const {
+        nombreCompleto,
+        nombreUsuario,
+        fechaNac,
+        correo,
+        contrasena
+    } = req.body
+
+    const sqlPersona = `
+    INSERT INTO persona (NombreCompleto, FechaNac)
+    VALUES (?, ?)
+    `
+
     db.query(sqlPersona, [nombreCompleto, fechaNac], (err, result) => {
+
         if (err) {
             console.error("Error al insertar persona:", err)
-            return res.status(500).json({ error: "Error al registrar usuario" })
+
+            return res.status(500).json({
+                error: "Error al registrar usuario"
+            })
         }
+
         const personaId = result.insertId
-        const sqlUsuario = `INSERT INTO usuario (NombreUsuario, Correo, Contraseña, id_per) VALUES (?, ?, ?, ?)`
-        db.query(sqlUsuario, [nombreUsuario, correo, contrasena, personaId], (err) => {
-            if (err) {
-                console.error("Error al insertar usuario:", err)
-                return res.status(500).json({ error: "Error al registrar usuario" })
+
+        const verificar = `
+        SELECT *
+        FROM usuario
+        WHERE NombreUsuario = ?
+        OR Correo = ?
+        `
+
+        db.query(verificar, [nombreUsuario, correo], (err, result) => {
+
+            if(err){
+                console.error("Error al verificar usuario:", err)
+                return res.status(500).json({
+                    error:"Error al registrar usuario"
+                })
             }
-            return res.status(201).json({ message: "Usuario registrado exitosamente" })
+            if(result.length > 0){
+                return res.status(400).json({
+                    error:"Nombre de usuario o correo ya registrado"
+                })
+            }
         })
+
+        const sqlUsuario = `
+        INSERT INTO usuario (
+            NombreUsuario,
+            Correo,
+            Contraseña,
+            id_per
+        )
+        VALUES (?, ?, ?, ?)
+        `
+
+        db.query(
+            sqlUsuario,
+            [nombreUsuario, correo, contrasena, personaId],
+
+            (err, resultUsuario) => {
+
+                if (err) {
+
+                    console.error("Error al insertar usuario:", err)
+
+                    return res.status(500).json({
+                        error: "Error al registrar usuario"
+                    })
+                }
+
+                // ID DEL USUARIO
+                const usuarioId = resultUsuario.insertId
+
+                // INSERTAR TODAS LAS TAREAS
+                const sqlTareas = `
+                INSERT INTO usuario_tarea(id_usuario,id_tarea)
+
+                SELECT ?, ID_Tarea
+                FROM tarea
+                `
+
+                db.query(sqlTareas, [usuarioId], (err) => {
+
+                    if(err){
+
+                        console.error("Error al asignar tareas:", err)
+
+                        return res.status(500).json({
+                            error:"Error al asignar tareas"
+                        })
+
+                    }
+
+                    return res.status(201).json({
+                        message:"Usuario registrado exitosamente"
+                    })
+
+                })
+
+            }
+        )
     })
 })
+
+// app.post("/register", (req, res) => {
+//     const {nombreCompleto,nombreUsuario,fechaNac,correo,contrasena} = req.body
+//     const sqlPersona = `INSERT INTO persona (NombreCompleto, FechaNac) VALUES (?, ?)`
+//     db.query(sqlPersona, [nombreCompleto, fechaNac], (err, result) => {
+//         if (err) {
+//             console.error("Error al insertar persona:", err)
+//             return res.status(500).json({ error: "Error al registrar usuario" })
+//         }
+//         const personaId = result.insertId
+//         const sqlUsuario = `INSERT INTO usuario (NombreUsuario, Correo, Contraseña, id_per) VALUES (?, ?, ?, ?)`
+//         db.query(sqlUsuario, [nombreUsuario, correo, contrasena, personaId], (err) => {
+//             if (err) {
+//                 console.error("Error al insertar usuario:", err)
+//                 return res.status(500).json({ error: "Error al registrar usuario" })
+//             }
+//             return res.status(201).json({ message: "Usuario registrado exitosamente" })
+//         })
+//     })
+// })
 
 app.get("/usuarios/buscar", (req, res) => {
     const { q, idUsuario } = req.query
@@ -172,6 +280,49 @@ app.post("/mensajes/enviar", (req, res) => {
     })
 })
 
+app.get("/tareas", (req, res) => {
+
+    const sql = `SELECT * FROM V_Tareas`
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener tareas" })
+        res.json(result)
+    })
+})
+
+app.get("/tareas/:id",(req,res)=>{
+
+    const id = req.params.id
+
+    const sql = `
+    SELECT *
+    FROM V_Tareas_Usuario
+    WHERE ID_Us = ?
+    `
+
+    db.query(sql,[id],(err,result)=>{
+
+        if(err){
+            return res.status(500).json({
+                error:"Error"
+            })
+        }
+
+        res.json(result)
+
+    })
+
+})
+
+app.get("/usuarios/:id/puntos", (req, res) => {
+    const { id } = req.params
+    const sql = `SELECT Puntos FROM usuario WHERE ID_Us = ?`
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener puntos" })
+        if (result.length === 0) return res.status(404).json({ error: "Usuario no encontrado" })
+        res.json({ puntos: result[0].Puntos })
+    })
+})
+
 function insertarMensaje(idCon, idEmisor, contenido, res) {
     db.query(
         "INSERT INTO mensaje (id_conversacion, id_remitente, mensaje, fechaCreacion) VALUES (?, ?, ?, NOW())",
@@ -182,6 +333,7 @@ function insertarMensaje(idCon, idEmisor, contenido, res) {
         }
     )
 }
+
 
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "..", process.env.CARPETA)))

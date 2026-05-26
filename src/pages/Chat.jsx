@@ -120,13 +120,32 @@ function Chat(){
     }
 
     const VistaGenerica = ({ titulo, children }) => (
-        <>
-            <div className="chat-header" style={{justifyContent: "center"}}>
-                <h3 style={{margin: 0, color: "white"}}>{titulo}</h3>
-            </div>
+    <div style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        width: "100%",
+        position: "relative"
+    }}>
+        <div className="chat-header" style={{
+            justifyContent: "center", 
+            flexShrink: 0,
+            position: "sticky",
+            top: 0,
+            zIndex: 2
+        }}>
+            <h3 style={{margin: 0, color: "white"}}>{titulo}</h3>
+        </div>
+        <div style={{
+            flex: 1, 
+            minHeight: 0, 
+            overflow: "auto",
+            position: "relative"
+        }}>
             {children}
-        </>
-    )
+        </div>
+    </div>
+)
 
     const NoChatSeleccionado = () => (
         <div style={{
