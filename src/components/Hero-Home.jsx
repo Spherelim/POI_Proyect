@@ -25,7 +25,7 @@ function Hero(){
                 <p>IAN BEIL PÉREZ GONZÁLEZ (BACKEND)</p>
             </div>
             <Developers/>
-            <StartButton/>
+            {/* <StartButton/> */}
         </div>
         
         </div>
