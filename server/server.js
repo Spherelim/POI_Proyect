@@ -92,13 +92,14 @@ app.post("/register", (req, res) => {
         })
 
         const sqlUsuario = `
-        INSERT INTO usuario (
-            NombreUsuario,
-            Correo,
-            Contraseña,
-            id_per
-        )
-        VALUES (?, ?, ?, ?)
+            INSERT INTO usuario (
+                NombreUsuario,
+                Correo,
+                Contraseña,
+                id_per,
+                FechaRegistro
+            )
+            VALUES (?, ?, ?, ?, NOW())
         `
 
         db.query(
@@ -320,6 +321,38 @@ app.get("/usuarios/:id/puntos", (req, res) => {
         if (err) return res.status(500).json({ error: "Error al obtener puntos" })
         if (result.length === 0) return res.status(404).json({ error: "Usuario no encontrado" })
         res.json({ puntos: result[0].Puntos })
+    })
+})
+
+app.get("/usuarios/detalles/:id", (req, res) => {
+    const { id } = req.params
+    const sql = `
+        SELECT 
+            u.ID_Us,
+            u.NombreUsuario,
+            u.Foto,
+            u.Banner,
+            u.Puntos,
+            u.FechaRegistro,
+            p.NombreCompleto,
+            p.FechaNac
+        FROM usuario u
+        INNER JOIN persona p ON u.id_per = p.ID_Per
+        WHERE u.ID_Us = ?
+    `
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Error:", err)
+            return res.status(500).json({ error: "Error al obtener datos del usuario" })
+        }
+        if (result.length === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" })
+        }
+        
+        res.json({
+            ...result[0],
+            FechaIngreso: result[0].FechaRegistro || result[0].FechaNac || new Date().toISOString()
+        })
     })
 })
 
