@@ -23,10 +23,11 @@ function UserPerfil({ amigo }){
                 .then(res => res.json())
                 .then(data => {
                     setUserData({
-                        foto: data.Foto || "/src/assets/images/default-avatar.png",
-                        banner: data.Banner || "/src/assets/images/default-banner.png",
+                        foto: data.Foto ? `${API_URL}${data.Foto}` : "/src/assets/images/default-avatar.png",
+                        banner: data.Banner ? `${API_URL}${data.Banner}` : "/src/assets/images/default-banner.png",
                         nombreUsuario: data.NombreUsuario,
                         nombreCompleto: data.NombreCompleto || "",
+                        descripcion: data.Descripcion || "", // Agrega esta línea
                         fechaIngreso: formatearFecha(data.FechaIngreso),
                         puntos: data.Puntos || 0
                     })
@@ -109,6 +110,7 @@ function UserPerfil({ amigo }){
 
                 <p className="NombreUs">{userData.nombreUsuario}</p>
                 <p className="Descrip">{userData.nombreCompleto}</p>
+                <p className="Descripcion">{userData.descripcion}</p>
 
                 <div className="Stats">
                     <div className="Stat">

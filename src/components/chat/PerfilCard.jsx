@@ -1,10 +1,46 @@
 import "./PerfilCard.css"
+import { useState, useEffect } from "react"
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function PerfilCard({cambiarVista, abrirSolicitudes}){
 
     const usuario = JSON.parse(localStorage.getItem("usuario"))
+    const [fotoPerfil, setFotoPerfil] = useState("")
+    const [nombreUsuario, setNombreUsuario] = useState(usuario?.nombreUsuario || "Usuario")
 
-    // Iconos SVG inline (no necesitan archivos externos)
+    useEffect(() => {
+        cargarFotoPerfil()
+        
+        // Escuchar cambios en localStorage
+        const handleStorageChange = () => {
+            const updatedUser = JSON.parse(localStorage.getItem("usuario"))
+            if (updatedUser) {
+                setNombreUsuario(updatedUser.nombreUsuario || "Usuario")
+            }
+            cargarFotoPerfil()
+        }
+        
+        window.addEventListener('storage', handleStorageChange)
+        return () => window.removeEventListener('storage', handleStorageChange)
+    }, [])
+
+    const cargarFotoPerfil = async () => {
+        if (!usuario?.id) return
+        try {
+            const res = await fetch(`${API_URL}/usuarios/detalles/${usuario.id}`)
+            const data = await res.json()
+            if (data.Foto) {
+                setFotoPerfil(`${API_URL}${data.Foto}`)
+            } else {
+                setFotoPerfil("")
+            }
+        } catch (error) {
+            console.error("Error cargando foto:", error)
+        }
+    }
+
+    // Iconos SVG inline
     const IconoAjustes = () => (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
             <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.33-.02-.64-.06-.94l2.02-1.58c.18-.14.23-.38.12-.56l-1.89-3.28c-.12-.19-.36-.26-.56-.18l-2.38.96c-.5-.38-1.06-.68-1.66-.88L14.45 3.5c-.04-.2-.2-.34-.4-.34h-3.78c-.2 0-.36.14-.4.34l-.3 2.52c-.6.2-1.16.5-1.66.88l-2.38-.96c-.2-.08-.44-.01-.56.18l-1.89 3.28c-.12.19-.07.42.12.56l2.02 1.58c-.04.3-.06.61-.06.94 0 .33.02.64.06.94l-2.02 1.58c-.18.14-.23.38-.12.56l1.89 3.28c.12.19.36.26.56.18l2.38-.96c.5.38 1.06.68 1.66.88l.3 2.52c.04.2.2.34.4.34h3.78c.2 0 .36-.14.4-.34l.3-2.52c.6-.2 1.16-.5 1.66-.88l2.38.96c.2.08.44.01.56-.18l1.89-3.28c.12-.19.07-.42-.12-.56l-2.02-1.58zM12 15c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
@@ -29,18 +65,25 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
         </svg>
     )
 
-    const AvatarSvg = () => (
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-        </svg>
-    )
-
     return(
         <div className="Perfil-Card">
             <div style={{display: "inline-flex", alignItems: "center", gap: "8px", width: "100%"}}>
-                <AvatarSvg/>
+                {fotoPerfil ? (
+                    <img 
+                        src={fotoPerfil} 
+                        style={{width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover"}}
+                        alt="Avatar"
+                        onError={(e) => {
+                            e.target.style.display = "none"
+                            e.target.nextSibling.style.display = "block"
+                        }}
+                    />
+                ) : null}
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg" style={{display: fotoPerfil ? "none" : "block"}}>
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
                 <span style={{color:"white", fontSize:"13px", flex:1}}>
-                    {usuario?.nombreUsuario || "Usuario"}
+                    {nombreUsuario}
                 </span>
                 <div style={{display: "flex", gap: "5px", cursor: "pointer"}} onClick={() => cambiarVista("ajustes")}>
                     <IconoAjustes/>
