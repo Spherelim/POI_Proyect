@@ -17,7 +17,23 @@ function Solicitudes({cerrar, onAmigoActualizado}){
     const cargarSolicitudes = async () => {
         const res = await fetch(`${API_URL}/solicitudes/${usuario.id}`)
         const data = await res.json()
-        setSolicitudes(data)
+        
+        // Cargar fotos de los usuarios que enviaron solicitudes
+        const solicitudesConFotos = await Promise.all(
+            data.map(async (solicitud) => {
+                try {
+                    const fotoRes = await fetch(`${API_URL}/usuarios/${solicitud.ID_Us}/foto`)
+                    const fotoData = await fotoRes.json()
+                    return {
+                        ...solicitud,
+                        foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                    }
+                } catch (error) {
+                    return { ...solicitud, foto: null }
+                }
+            })
+        )
+        setSolicitudes(solicitudesConFotos)
     }
 
     useEffect(() => {
@@ -28,7 +44,23 @@ function Solicitudes({cerrar, onAmigoActualizado}){
         const timeout = setTimeout(async () => {
             const res = await fetch(`${API_URL}/usuarios/buscar?q=${busqueda}&idUsuario=${usuario.id}`)
             const data = await res.json()
-            setResultados(data)
+            
+            // Cargar fotos de los resultados de búsqueda
+            const resultadosConFotos = await Promise.all(
+                data.map(async (user) => {
+                    try {
+                        const fotoRes = await fetch(`${API_URL}/usuarios/${user.ID_Us}/foto`)
+                        const fotoData = await fotoRes.json()
+                        return {
+                            ...user,
+                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                        }
+                    } catch (error) {
+                        return { ...user, foto: null }
+                    }
+                })
+            )
+            setResultados(resultadosConFotos)
         }, 300)
         return () => clearTimeout(timeout)
     }, [busqueda])
@@ -39,9 +71,24 @@ function Solicitudes({cerrar, onAmigoActualizado}){
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ idEmisor: usuario.id, idReceptor })
         })
+        // Actualizar resultados
         const res = await fetch(`${API_URL}/usuarios/buscar?q=${busqueda}&idUsuario=${usuario.id}`)
         const data = await res.json()
-        setResultados(data)
+        const resultadosConFotos = await Promise.all(
+            data.map(async (user) => {
+                try {
+                    const fotoRes = await fetch(`${API_URL}/usuarios/${user.ID_Us}/foto`)
+                    const fotoData = await fotoRes.json()
+                    return {
+                        ...user,
+                        foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                    }
+                } catch (error) {
+                    return { ...user, foto: null }
+                }
+            })
+        )
+        setResultados(resultadosConFotos)
     }
 
     const responder = async (idAmistad, accion) => {
@@ -52,10 +99,34 @@ function Solicitudes({cerrar, onAmigoActualizado}){
         })
         setSolicitudes(prev => prev.filter(s => s.ID_Amistad !== idAmistad))
         
-        // Si se aceptó, notificar al sidebar que actualice amigos
         if (accion === "aceptado" && onAmigoActualizado) {
             onAmigoActualizado()
         }
+    }
+
+    // Componente para mostrar avatar con foto
+    const Avatar = ({ foto, nombre }) => {
+        // Si hay foto, intenta mostrarla
+        if (foto) {
+            return (
+                <img 
+                    src={foto} 
+                    alt={nombre}
+                    className="avatar-img"
+                    onError={(e) => {
+                        // Si falla, muestra la inicial
+                        e.target.style.display = 'none'
+                        e.target.nextSibling.style.display = 'flex'
+                    }}
+                />
+            )
+        }
+        
+        return (
+            <div className="avatar-inicial">
+                {nombre?.charAt(0).toUpperCase() || "?"}
+            </div>
+        )
     }
 
     return(
@@ -96,7 +167,10 @@ function Solicitudes({cerrar, onAmigoActualizado}){
                             )}
                             {resultados.map(u => (
                                 <div className="usuario-item" key={u.ID_Us}>
-                                    <div className="avatar-placeholder"/>
+                                    <Avatar foto={u.foto} nombre={u.NombreUsuario} />
+                                    <div className="avatar-inicial" style={{display: 'none'}}>
+                                        {u.NombreUsuario?.charAt(0).toUpperCase() || "?"}
+                                    </div>
                                     <span>{u.NombreUsuario}</span>
                                     {u.estadoAmistad === "aceptado" && (
                                         <span className="estado-tag amigos">✓ Amigos</span>
@@ -118,7 +192,7 @@ function Solicitudes({cerrar, onAmigoActualizado}){
                                 ? <p className="vacio">No tienes solicitudes pendientes</p>
                                 : solicitudes.map(s => (
                                     <div className="usuario-item" key={s.ID_Amistad}>
-                                        <div className="avatar-placeholder"/>
+                                        <Avatar foto={s.foto} nombre={s.NombreUsuario} />
                                         <span>{s.NombreUsuario}</span>
                                         <button className="btn-aceptar" onClick={() => responder(s.ID_Amistad, "aceptado")}>✓ Aceptar</button>
                                         <button className="btn-rechazar" onClick={() => responder(s.ID_Amistad, "rechazado")}>✕ Rechazar</button>
