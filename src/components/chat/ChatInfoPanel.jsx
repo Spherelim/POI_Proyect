@@ -4,7 +4,7 @@ import SideInfo from "./SideInfo"
 import UserPerfil from "./UserPerfil"
 import Insignias from "./Insignias"
 
-function ChatInfoPanel({cerrarInfo}){
+function ChatInfoPanel({cerrarInfo, amigo}){
     return(
         <div className="chat-info-panel">
             
@@ -13,7 +13,7 @@ function ChatInfoPanel({cerrarInfo}){
             </div>
 
             <div>
-                <UserPerfil/>
+                <UserPerfil amigo={amigo}/>
             </div>
 
             <div>

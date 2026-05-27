@@ -234,7 +234,10 @@ function Chat(){
             </div>
 
             {mostrarInfo && amigoActivo && (
-                <ChatInfoPanel cerrarInfo={() => setMostrarInfo(false)}/>
+                <ChatInfoPanel 
+                    cerrarInfo={() => setMostrarInfo(false)}
+                    amigo={amigoActivo}
+                />
             )}
 
             {mostrarSolicitudes && (

@@ -6,6 +6,39 @@ const { Server } = require("socket.io")
 const cors = require("cors")
 const path = require("path")
 
+const multer = require("multer")
+const fs = require("fs")
+
+const uploadDir = path.join(__dirname, "uploads")
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir,{ recursive: true })
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir)
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9)
+        cb(null, uniqueSuffix + path.extname(file.originalname))
+    }
+})
+
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|gif|webp/
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase())
+        const mimetype = allowedTypes.test(file.mimetype)
+        if (extname && mimetype) {
+            return cb(null, true)
+        } else {
+            cb(new Error("Solo se permiten imágenes"))
+        }
+    }
+})
+
 const app = express()
 app.use(cors())
 
@@ -18,7 +51,9 @@ const server = http.createServer(app)
 
 const db = require("./db")
 
-app.use(express.json())
+// app.use(express.json())
+app.use(express.json({ limit: '50mb' }))
+app.use(express.urlencoded({ limit: '50mb', extended: true }))
 
 app.post("/login", (req, res) => {
     const { nombreUsuario, contrasena } = req.body
@@ -92,13 +127,14 @@ app.post("/register", (req, res) => {
         })
 
         const sqlUsuario = `
-        INSERT INTO usuario (
-            NombreUsuario,
-            Correo,
-            Contraseña,
-            id_per
-        )
-        VALUES (?, ?, ?, ?)
+            INSERT INTO usuario (
+                NombreUsuario,
+                Correo,
+                Contraseña,
+                id_per,
+                FechaRegistro
+            )
+            VALUES (?, ?, ?, ?, NOW())
         `
 
         db.query(
@@ -320,6 +356,173 @@ app.get("/usuarios/:id/puntos", (req, res) => {
         if (err) return res.status(500).json({ error: "Error al obtener puntos" })
         if (result.length === 0) return res.status(404).json({ error: "Usuario no encontrado" })
         res.json({ puntos: result[0].Puntos })
+    })
+})
+
+app.get("/usuarios/detalles/:id", (req, res) => {
+    const { id } = req.params
+    const sql = `
+        SELECT 
+            u.ID_Us,
+            u.NombreUsuario,
+            u.Correo,
+            u.Foto,
+            u.Banner,
+            u.Puntos,
+            u.FechaRegistro,
+            u.Descripcion,
+            p.NombreCompleto,
+            p.FechaNac
+        FROM usuario u
+        INNER JOIN persona p ON u.id_per = p.ID_Per
+        WHERE u.ID_Us = ?
+    `
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Error:", err)
+            return res.status(500).json({ error: "Error al obtener datos del usuario" })
+        }
+        if (result.length === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" })
+        }
+        
+        res.json({
+            ...result[0],
+            FechaIngreso: result[0].FechaRegistro
+        })
+    })
+})
+
+// Endpoint para subir foto
+app.post('/upload/foto/:id', upload.single('foto'), (req, res) => {
+    const { id } = req.params
+    const fotoUrl = `/uploads/${req.file.filename}`
+    
+    db.query('UPDATE usuario SET Foto = ? WHERE ID_Us = ?', [fotoUrl, id], (err) => {
+        if (err) return res.status(500).json({ error: 'Error al guardar foto' })
+        res.json({ fotoUrl })
+    })
+})
+
+// Endpoint para subir banner
+app.post('/upload/banner/:id', upload.single('banner'), (req, res) => {
+    const { id } = req.params
+    const bannerUrl = `/uploads/${req.file.filename}`
+    
+    db.query('UPDATE usuario SET Banner = ? WHERE ID_Us = ?', [bannerUrl, id], (err) => {
+        if (err) return res.status(500).json({ error: 'Error al guardar banner' })
+        res.json({ bannerUrl })
+    })
+})
+
+// Servir archivos estáticos de uploads
+app.use('/uploads', express.static(uploadDir))
+
+// Endpoint para actualizar usuario
+app.put("/usuarios/actualizar/:id", (req, res) => {
+    const { id } = req.params
+    const { nombreUsuario, nombreCompleto, correo, fechaNac, descripcion } = req.body
+    
+    // Primero obtener el id_per del usuario
+    const getIdPer = `SELECT id_per FROM usuario WHERE ID_Us = ?`
+    
+    db.query(getIdPer, [id], (err, result) => {
+        if (err) {
+            console.error("Error obteniendo id_per:", err)
+            return res.status(500).json({ error: "Error al actualizar datos" })
+        }
+        
+        if (result.length === 0) {
+            return res.status(404).json({ error: "Usuario no encontrado" })
+        }
+        
+        const idPer = result[0].id_per
+        
+        // Actualizar persona
+        const sqlPersona = `
+            UPDATE persona 
+            SET NombreCompleto = ?,
+                FechaNac = ?
+            WHERE ID_Per = ?
+        `
+        
+        db.query(sqlPersona, [nombreCompleto, fechaNac, idPer], (err) => {
+            if (err) {
+                console.error("Error actualizando persona:", err)
+                return res.status(500).json({ error: "Error al actualizar datos" })
+            }
+            
+            // Actualizar usuario (sin foto y banner que ya se subieron aparte)
+            const sqlUsuario = `
+                UPDATE usuario 
+                SET NombreUsuario = ?,
+                    Correo = ?,
+                    Descripcion = ?
+                WHERE ID_Us = ?
+            `
+            
+            db.query(sqlUsuario, [nombreUsuario, correo, descripcion, id], (err) => {
+                if (err) {
+                    console.error("Error actualizando usuario:", err)
+                    return res.status(500).json({ error: "Error al actualizar datos" })
+                }
+                
+                res.json({ 
+                    message: "Datos actualizados correctamente",
+                    user: {
+                        id: id,
+                        nombreUsuario: nombreUsuario,
+                        nombreCompleto: nombreCompleto
+                    }
+                })
+            })
+        })
+    })
+})
+
+// // Endpoint para obtener datos completos del usuario (incluyendo descripción si la agregas)
+// app.get("/usuarios/detalles/:id", (req, res) => {
+//     const { id } = req.params
+//     const sql = `
+//         SELECT 
+//             u.ID_Us,
+//             u.NombreUsuario,
+//             u.Correo,
+//             u.Foto,
+//             u.Banner,
+//             u.Puntos,
+//             u.FechaRegistro,
+//             u.Descripcion,
+//             p.NombreCompleto,
+//             p.FechaNac
+//         FROM usuario u
+//         INNER JOIN persona p ON u.id_per = p.ID_Per
+//         WHERE u.ID_Us = ?
+//     `
+//     db.query(sql, [id], (err, result) => {
+//         if (err) {
+//             console.error("Error:", err)
+//             return res.status(500).json({ error: "Error al obtener datos del usuario" })
+//         }
+//         if (result.length === 0) {
+//             return res.status(404).json({ error: "Usuario no encontrado" })
+//         }
+        
+//         res.json({
+//             ...result[0],
+//             FechaIngreso: result[0].FechaRegistro,
+//             descripcion: "Hola, estoy usando MundiChat!" // Puedes agregar una columna descripcion a la BD
+//         })
+//     })
+// })
+
+// Endpoint para obtener solo la foto del usuario
+app.get("/usuarios/:id/foto", (req, res) => {
+    const { id } = req.params
+    const sql = `SELECT Foto FROM usuario WHERE ID_Us = ?`
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error" })
+        res.json({ foto: result[0]?.Foto || null })
     })
 })
 
