@@ -14,8 +14,24 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
         try {
             const res = await fetch(`${API_URL}/amigos/${usuario.id}`)
             const data = await res.json()
-            console.log("Amigos cargados:", data)
-            setAmigos(data)
+            
+            // Cargar las fotos de cada amigo
+            const amigosConFotos = await Promise.all(
+                data.map(async (amigo) => {
+                    try {
+                        const fotoRes = await fetch(`${API_URL}/usuarios/${amigo.ID_Us}/foto`)
+                        const fotoData = await fotoRes.json()
+                        return {
+                            ...amigo,
+                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                        }
+                    } catch (error) {
+                        return { ...amigo, foto: null }
+                    }
+                })
+            )
+            
+            setAmigos(amigosConFotos)
         } catch (error) {
             console.error("Error cargando amigos:", error)
         }
@@ -32,7 +48,6 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
     }, [actualizarSidebar])
 
     const handleSeleccionarAmigo = (amigo) => {
-        console.log("Seleccionando amigo:", amigo)
         seleccionarAmigo(amigo)
         cambiarVista("chat")
     }
@@ -50,7 +65,7 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                 : amigos.map(amigo => (
                     <ChatCard
                         key={amigo.ID_Us}
-                        imagen={amigo.imagen || null}
+                        imagen={amigo.foto}
                         NomUser={amigo.NombreUsuario}
                         ultmsg="Toca para chatear"
                         time=""

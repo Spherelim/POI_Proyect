@@ -3,10 +3,33 @@ import Alert from "../Alert.jsx"
 import { useState, useEffect } from "react"
 import { socket } from "../../socket.js"
 
+import LlamarIcon from "/src/assets/icons/Llamada/llamada-telefonica 1 (w).png"
+import VidLlamadaIcon from "/src/assets/icons/Llamada/video-camara-alt (w).png"
+import BuscarIcon from "/src/assets/icons/busqueda (w).png"
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+
 function ChatHeader({abrirInfo, amigo}){
 
-    const [mostrarAlert,setMostrarAlert] = useState(false)
+    const [mostrarAlert, setMostrarAlert] = useState(false)
     const [activo, setActivo] = useState(false)
+    const [fotoAmigo, setFotoAmigo] = useState(null)
+
+    // Cargar foto del amigo cuando cambia
+    useEffect(() => {
+        if (amigo?.ID_Us) {
+            fetch(`${API_URL}/usuarios/${amigo.ID_Us}/foto`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.foto) {
+                        setFotoAmigo(`${API_URL}${data.foto}`)
+                    } else {
+                        setFotoAmigo(null)
+                    }
+                })
+                .catch(err => console.error("Error cargando foto:", err))
+        }
+    }, [amigo?.ID_Us])
 
     // Si no hay amigo, mostrar placeholder
     if (!amigo || !amigo.ID_Us) {
@@ -45,18 +68,14 @@ function ChatHeader({abrirInfo, amigo}){
             socket.off(`user_status_${amigo.ID_Us}`, handleStatus)
         }
     }, [amigo?.ID_Us])
-
-    const Llamar = "/src/assets/icons/Llamada/llamada-telefonica 1 (w).png"
-    const VidLlamada = "/src/assets/icons/Llamada/video-camara-alt (w).png"
-    const Buscar = "/src/assets/icons/busqueda (w).png"
     
     return(
         <>
             <div className="chat-header">
                 
                 <div className="user-info">
-                    {amigo?.imagen ? (
-                        <img src={amigo.imagen} alt="Img_User" onClick={abrirInfo} />
+                    {fotoAmigo ? (
+                        <img src={fotoAmigo} alt="Img_User" onClick={abrirInfo} />
                     ) : (
                         <div onClick={abrirInfo} style={{cursor: "pointer"}}>
                             <AvatarDefault/>
@@ -73,13 +92,13 @@ function ChatHeader({abrirInfo, amigo}){
                 </div>
 
                 <div className="icons">
-                    <img src={Llamar} alt="llamada" 
+                    <img src={LlamarIcon} alt="llamada" 
                     onClick={()=>setMostrarAlert(true)} />
 
-                    <img src={VidLlamada} alt="video llamada"
+                    <img src={VidLlamadaIcon} alt="video llamada"
                     onClick={()=>setMostrarAlert(true)} />
 
-                    <img src={Buscar} alt="buscarMensaje" />
+                    <img src={BuscarIcon} alt="buscarMensaje" />
                 </div>
 
             </div>

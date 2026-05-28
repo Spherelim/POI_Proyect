@@ -2,6 +2,11 @@ import "./UserPerfil.css"
 import Alert from "../Alert"
 import { useState, useEffect } from "react"
 
+import FavoritoIcon from "/src/assets/icons/corazon (w).png"
+import EliminarIcon from "/src/assets/icons/Contactos/eliminar-usuario (w).png"
+import BloquearIcon from "/src/assets/icons/prohibicion (w).png"
+import SilenciarIcon from "/src/assets/icons/Notificación/campana 1 (w).png"
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function UserPerfil({ amigo }){
@@ -51,11 +56,6 @@ function UserPerfil({ amigo }){
         setMostrarAlert(true)
     }
 
-    let favorito = "/src/assets/icons/corazon (w).png"
-    let eliminar = "/src/assets/icons/Contactos/eliminar-usuario (w).png"
-    let bloquear = "/src/assets/icons/prohibicion (w).png"
-    let sileciar = "/src/assets/icons/Notificación/campana 1 (w).png"
-
     return(
         <>
             <div className="Perfil-User">
@@ -79,13 +79,13 @@ function UserPerfil({ amigo }){
                 <div className="acciones">
                     <div className="accionesUno">
                         <img 
-                            src={favorito} 
+                            src={FavoritoIcon} 
                             alt="Favorito" 
                             className="Favorito" 
                             onClick={() => handleAccion("marcar como favorito")}
                         />
                         <img 
-                            src={eliminar} 
+                            src={EliminarIcon} 
                             alt="Eliminar Usuario" 
                             className="Eliminar"
                             onClick={() => handleAccion("eliminar de amigos")}
@@ -94,13 +94,13 @@ function UserPerfil({ amigo }){
 
                     <div className="accionesDos">
                         <img 
-                            src={bloquear} 
+                            src={BloquearIcon} 
                             alt="Bloquear Usuario" 
                             className="Bloquear"
                             onClick={() => handleAccion("bloquear")}
                         />
                         <img 
-                            src={sileciar} 
+                            src={SilenciarIcon} 
                             alt="Silenciar Usuario" 
                             className="Silenciar"
                             onClick={() => handleAccion("silenciar")}

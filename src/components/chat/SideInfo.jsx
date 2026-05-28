@@ -3,22 +3,23 @@ import "./SideInfo.css"
 import Alert from "../Alert.jsx"
 import { useState } from "react"
 
+import InfoIcon from "/src/assets/icons/informacion (w).png"
+import CerrarIcon from "/src/assets/icons/circulo-marca-x (w).png"
+
 function SideInfo({cerrarInfo}){
 
     const [mostrarAlert,setMostrarAlert]=useState(false)
 
     let Titulo = "Información"
-    let InfoImg = "/src/assets/icons/informacion (w).png"
-    let CerrarSide = "/src/assets/icons/circulo-marca-x (w).png"
 
     return(
         <>
             <p className="Titulo">{Titulo}</p>
 
-            <img src={CerrarSide} alt="Cerrar" className="Close"
+            <img src={CerrarIcon} alt="Cerrar" className="Close"
             onClick={cerrarInfo}/>
 
-            <img src={InfoImg} alt="Información" className="Info"
+            <img src={InfoIcon} alt="Información" className="Info"
             onClick={()=>setMostrarAlert(true)} />
 
             {mostrarAlert &&(
