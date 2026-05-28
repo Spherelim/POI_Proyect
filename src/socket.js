@@ -1,7 +1,7 @@
 import { io } from "socket.io-client"
 
 const usuario = JSON.parse(localStorage.getItem("usuario"))
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost" + (import.meta.env.VITE_API_PORT || ":3000")
 
 export const socket = io(API_URL, {
     autoConnect: true,
