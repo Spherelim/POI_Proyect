@@ -1,11 +1,11 @@
-import "./ChatInput.css"
+﻿import "./ChatInput.css"
 
 import Alert from "../Alert.jsx"
 import { useState } from "react"
 
 import MultimediaIcon from "/src/assets/icons/chat/agregar (w).png"
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+import { API_URL } from "../../utils/api.js"
 
 function ChatInput({mensaje,setMensaje,enviarMensaje}){
 

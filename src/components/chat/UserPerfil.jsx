@@ -1,4 +1,4 @@
-import "./UserPerfil.css"
+﻿import "./UserPerfil.css"
 import Alert from "../Alert"
 import { useState, useEffect } from "react"
 
@@ -15,7 +15,7 @@ import BloquearIcon from "/src/assets/icons/prohibicion (w).png"
 import SilenciarIcon from "/src/assets/icons/Notificación/campana 1 (w).png"
 import SilenciarIconFilled from "/src/assets/icons/Notificación/corte-de-campana 1 (w).png"
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+import { API_URL } from "../../utils/api.js"
 
 function UserPerfil({ amigo, usuarioActualId }){
     const [AlertData, setMostrarAlert] = useState(false)

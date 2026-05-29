@@ -1,11 +1,11 @@
-import PerfilCard from "./PerfilCard";
+﻿import PerfilCard from "./PerfilCard";
 import ChatCard from "./ChatCard"
 import "./Sidebar.css"
 import { useState, useEffect } from "react"
 
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+import { API_URL } from "../../utils/api.js"
 
 function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSidebar}){
 

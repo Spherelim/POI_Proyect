@@ -1,10 +1,10 @@
-import "./Settings.css"
+﻿import "./Settings.css"
 import { useState, useEffect, useRef } from "react"
 
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 import BannerDefault from "/src/assets/images/Banner 3.png"
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+import { API_URL } from "../utils/api.js"
 
 function Settings() {
     const usuarioActual = JSON.parse(localStorage.getItem("usuario"))

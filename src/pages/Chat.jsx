@@ -1,4 +1,4 @@
-import "./Chat.css"
+﻿import "./Chat.css"
 
 import Sidebar from "../components/chat/Sidebar"
 import ChatHeader from "../components/chat/ChatHeader"
@@ -13,7 +13,7 @@ import Solicitudes from "../components/Solicitudes"
 import { useEffect, useState, useRef } from "react"
 import { socket } from "../socket"
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+import { API_URL } from "../utils/api.js"
 
 function Chat(){
     const usuario = JSON.parse(localStorage.getItem("usuario"))

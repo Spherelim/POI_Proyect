@@ -1,9 +1,9 @@
-import "./PerfilCard.css"
+﻿import "./PerfilCard.css"
 import { useState, useEffect } from "react"
 
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+import { API_URL } from "../../utils/api.js"
 
 function PerfilCard({cambiarVista, abrirSolicitudes}){
 

@@ -1,7 +1,7 @@
-import Card_Tarea from "./Tareas/Card_Tarea"
+﻿import Card_Tarea from "./Tareas/Card_Tarea"
 import { useEffect, useState } from "react"
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+import { API_URL } from "../utils/api.js"
 
 function Tareas(){
     const [tareas, setTareas] = useState([])

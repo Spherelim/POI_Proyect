@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router-dom"
+﻿import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 import "./Login.css"
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+import { API_URL } from "../utils/api.js"
 
 function Login(){
     const navigate = useNavigate();
