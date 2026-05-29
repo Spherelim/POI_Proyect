@@ -3,6 +3,8 @@ import ChatCard from "./ChatCard"
 import "./Sidebar.css"
 import { useState, useEffect } from "react"
 
+import FotoDefault from "/src/assets/images/Conejito.jpg"
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSidebar}){
@@ -23,10 +25,11 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                         const fotoData = await fotoRes.json()
                         return {
                             ...amigo,
-                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault,
+                            esFavorito: amigo.Favorito === 1
                         }
                     } catch (error) {
-                        return { ...amigo, foto: null }
+                        return { ...amigo, foto: FotoDefault, esFavorito: amigo.Favorito === 1 }
                     }
                 })
             )
@@ -61,7 +64,7 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
             {amigos.length === 0
                 ? <p style={{color:"rgba(255,255,255,0.5)", fontSize:"13px", textAlign:"center", marginTop:"20px"}}>
                     No tienes amigos aún
-                  </p>
+                </p>
                 : amigos.map(amigo => (
                     <ChatCard
                         key={amigo.ID_Us}
@@ -69,6 +72,7 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                         NomUser={amigo.NombreUsuario}
                         ultmsg="Toca para chatear"
                         time=""
+                        esFavorito={amigo.esFavorito}
                         abrirChat={() => handleSeleccionarAmigo(amigo)}
                     />
                 ))

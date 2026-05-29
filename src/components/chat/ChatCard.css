@@ -1,4 +1,5 @@
 .Chat-Card{
+    position:relative;
     display:flex;
     align-items:center;
     margin-top:15px;
@@ -7,6 +8,12 @@
     cursor: pointer;
     user-select: none;
     transition: background 0.2s;
+}
+
+.favorito-icon {
+    margin-left: 5px;
+    display: flex;
+    align-items: center;
 }
 
 .Chat-Card:hover {

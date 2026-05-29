@@ -1,6 +1,7 @@
 import "./ChatCard.css"
+import FavoritoIconFilled from "/src/assets/icons/corazon (w1).png"  // importa el icono
 
-function ChatCard({imagen, NomUser, ultmsg, time, abrirChat}){
+function ChatCard({imagen, NomUser, ultmsg, time, esFavorito, abrirChat}){
     
     const AvatarDefault = () => (
         <svg width="45" height="45" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
@@ -15,6 +16,11 @@ function ChatCard({imagen, NomUser, ultmsg, time, abrirChat}){
                 <p>{NomUser}</p>
                 <span>{ultmsg}</span>
             </div>
+            {esFavorito && (
+                <div className="favorito-icon">
+                    <img src={FavoritoIconFilled} alt="Favorito" style={{width: "16px", height: "16px"}} />
+                </div>
+            )}
             <span className="time">{time}</span>
         </div>
     )

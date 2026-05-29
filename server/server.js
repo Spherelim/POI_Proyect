@@ -201,26 +201,6 @@ app.post("/register", (req, res) => {
     })
 })
 
-// app.post("/register", (req, res) => {
-//     const {nombreCompleto,nombreUsuario,fechaNac,correo,contrasena} = req.body
-//     const sqlPersona = `INSERT INTO persona (NombreCompleto, FechaNac) VALUES (?, ?)`
-//     db.query(sqlPersona, [nombreCompleto, fechaNac], (err, result) => {
-//         if (err) {
-//             console.error("Error al insertar persona:", err)
-//             return res.status(500).json({ error: "Error al registrar usuario" })
-//         }
-//         const personaId = result.insertId
-//         const sqlUsuario = `INSERT INTO usuario (NombreUsuario, Correo, Contraseña, id_per) VALUES (?, ?, ?, ?)`
-//         db.query(sqlUsuario, [nombreUsuario, correo, contrasena, personaId], (err) => {
-//             if (err) {
-//                 console.error("Error al insertar usuario:", err)
-//                 return res.status(500).json({ error: "Error al registrar usuario" })
-//             }
-//             return res.status(201).json({ message: "Usuario registrado exitosamente" })
-//         })
-//     })
-// })
-
 app.get("/usuarios/buscar", (req, res) => {
     const { q, idUsuario } = req.query
     const sql = `
@@ -238,20 +218,65 @@ app.get("/usuarios/buscar", (req, res) => {
     })
 })
 
+// Endpoint para obtener amigos (solo aceptados, no bloqueados) con información de favorito
 app.get("/amigos/:idUsuario", (req, res) => {
     const idUsuario = parseInt(req.params.idUsuario)
     const sql = `
-        SELECT u.ID_Us, u.NombreUsuario
+        SELECT 
+            u.ID_Us, 
+            u.NombreUsuario,
+            a.Favorito
         FROM amistad a
         INNER JOIN usuario u ON (
             (a.usuario1 = ? AND a.usuario2 = u.ID_Us) OR
             (a.usuario2 = ? AND a.usuario1 = u.ID_Us)
         )
-        WHERE (a.usuario1 = ? OR a.usuario2 = ?) AND a.estado = 'aceptado'
+        WHERE (a.usuario1 = ? OR a.usuario2 = ?) 
+        AND a.estado = 'aceptado'
+        ORDER BY a.Favorito DESC, u.NombreUsuario ASC
     `
     db.query(sql, [idUsuario, idUsuario, idUsuario, idUsuario], (err, result) => {
         if (err) return res.status(500).json({ error: "Error al obtener amigos" })
         res.json(result)
+    })
+})
+
+// Endpoint para obtener usuarios bloqueados por el usuario actual
+app.get("/bloqueados/:idUsuario", (req, res) => {
+    const idUsuario = parseInt(req.params.idUsuario)
+    const sql = `
+        SELECT 
+            u.ID_Us, 
+            u.NombreUsuario
+        FROM amistad a
+        INNER JOIN usuario u ON (
+            (a.usuario1 = ? AND a.usuario2 = u.ID_Us) OR
+            (a.usuario2 = ? AND a.usuario1 = u.ID_Us)
+        )
+        WHERE (a.usuario1 = ? OR a.usuario2 = ?) 
+        AND a.estado = 'bloqueado'
+    `
+    db.query(sql, [idUsuario, idUsuario, idUsuario, idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener bloqueados" })
+        res.json(result)
+    })
+})
+
+// Endpoint para desbloquear usuario
+app.put("/amistad/desbloquear", (req, res) => {
+    const { idUsuario, idAmigo } = req.body
+    const sql = `
+        UPDATE amistad 
+        SET estado = 'aceptado' 
+        WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
+        AND estado = 'bloqueado'
+    `
+    db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al desbloquear" })
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "No se encontró bloqueo" })
+        }
+        res.json({ message: "Usuario desbloqueado correctamente" })
     })
 })
 
@@ -365,6 +390,112 @@ app.put("/solicitud/responder", (req, res) => {
                 }).catch(err => console.error("Error:", err))
             }
         })
+    })
+})
+
+// En server.js - Obtener estado de la amistad (favorito, silenciado)
+app.get("/amistad/estado/:idUsuario/:idAmigo", (req, res) => {
+    const { idUsuario, idAmigo } = req.params
+    
+    const sql = `
+        SELECT Favorito, Sileciar
+        FROM amistad
+        WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
+    `
+    db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error" })
+        if (result.length === 0) return res.json({ favorito: 0, silenciado: 0 })
+        res.json({ 
+            favorito: result[0].Favorito || 0,
+            silenciado: result[0].Sileciar || 0
+        })
+    })
+})
+
+// Endpoint para marcar/desmarcar favorito
+app.put("/amistad/favorito", (req, res) => {
+    const { idUsuario, idAmigo, favorito } = req.body
+    
+    const sql = `
+        UPDATE amistad 
+        SET Favorito = ? 
+        WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
+    `
+    db.query(sql, [favorito ? 1 : 0, idUsuario, idAmigo, idAmigo, idUsuario], (err) => {
+        if (err) return res.status(500).json({ error: "Error" })
+        res.json({ message: favorito ? "Marcado como favorito" : "Eliminado de favoritos" })
+        
+        if (favorito) {
+            const port = process.env.PORT || 3000
+            fetch(`http://localhost:${port}/tareas/progreso`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idUsuario, idTarea: 2, incremento: 1 })
+            }).catch(err => console.error("Error:", err))
+        }
+    })
+})
+
+// Endpoint para silenciar/desilenciar
+app.put("/amistad/silenciar", (req, res) => {
+    const { idUsuario, idAmigo, silenciado } = req.body
+    
+    const sql = `
+        UPDATE amistad 
+        SET Sileciar = ? 
+        WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
+    `
+    db.query(sql, [silenciado ? 1 : 0, idUsuario, idAmigo, idAmigo, idUsuario], (err) => {
+        if (err) return res.status(500).json({ error: "Error" })
+        res.json({ message: silenciado ? "Silenciado" : "Silencio desactivado" })
+    })
+})
+
+// Endpoint para eliminar amigo
+app.delete("/amistad/eliminar", (req, res) => {
+    const { idUsuario, idAmigo } = req.body
+    
+    const sql = `
+        DELETE FROM amistad 
+        WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
+    `
+    db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err) => {
+        if (err) return res.status(500).json({ error: "Error" })
+        res.json({ message: "Amigo eliminado" })
+    })
+})
+
+// Endpoint para bloquear usuario
+app.put("/amistad/bloquear", (req, res) => {
+    const { idUsuario, idAmigo } = req.body
+    
+    const sql = `
+        UPDATE amistad 
+        SET estado = 'bloqueado' 
+        WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
+    `
+    db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err) => {
+        if (err) return res.status(500).json({ error: "Error" })
+        res.json({ message: "Usuario bloqueado" })
+    })
+})
+
+// Endpoint para desbloquear usuario
+app.put("/amistad/desbloquear", (req, res) => {
+    const { idUsuario, idAmigo } = req.body
+    
+    const sql = `
+        UPDATE amistad 
+        SET estado = 'aceptado' 
+        WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
+    `
+    db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err, result) => {
+        if (err) {
+            console.error("Error al desbloquear usuario:", err)
+            return res.status(500).json({ error: "Error al desbloquear usuario" })
+        }
+        
+        res.json({ message: "Usuario desbloqueado correctamente" })
     })
 })
 
@@ -593,42 +724,6 @@ app.put("/usuarios/actualizar/:id", (req, res) => {
         })
     })
 })
-
-// // Endpoint para obtener datos completos del usuario (incluyendo descripción si la agregas)
-// app.get("/usuarios/detalles/:id", (req, res) => {
-//     const { id } = req.params
-//     const sql = `
-//         SELECT 
-//             u.ID_Us,
-//             u.NombreUsuario,
-//             u.Correo,
-//             u.Foto,
-//             u.Banner,
-//             u.Puntos,
-//             u.FechaRegistro,
-//             u.Descripcion,
-//             p.NombreCompleto,
-//             p.FechaNac
-//         FROM usuario u
-//         INNER JOIN persona p ON u.id_per = p.ID_Per
-//         WHERE u.ID_Us = ?
-//     `
-//     db.query(sql, [id], (err, result) => {
-//         if (err) {
-//             console.error("Error:", err)
-//             return res.status(500).json({ error: "Error al obtener datos del usuario" })
-//         }
-//         if (result.length === 0) {
-//             return res.status(404).json({ error: "Usuario no encontrado" })
-//         }
-        
-//         res.json({
-//             ...result[0],
-//             FechaIngreso: result[0].FechaRegistro,
-//             descripcion: "Hola, estoy usando MundiChat!" // Puedes agregar una columna descripcion a la BD
-//         })
-//     })
-// })
 
 // Endpoint para obtener solo la foto del usuario
 app.get("/usuarios/:id/foto", (req, res) => {

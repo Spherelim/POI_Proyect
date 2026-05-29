@@ -3,6 +3,8 @@ import Alert from "../Alert.jsx"
 import { useState, useEffect } from "react"
 import { socket } from "../../socket.js"
 
+import FotoDefault from "/src/assets/images/Conejito.jpg"
+
 import LlamarIcon from "/src/assets/icons/Llamada/llamada-telefonica 1 (w).png"
 import VidLlamadaIcon from "/src/assets/icons/Llamada/video-camara-alt (w).png"
 import BuscarIcon from "/src/assets/icons/busqueda (w).png"
@@ -24,7 +26,7 @@ function ChatHeader({abrirInfo, amigo}){
                     if (data.foto) {
                         setFotoAmigo(`${API_URL}${data.foto}`)
                     } else {
-                        setFotoAmigo(null)
+                        setFotoAmigo(FotoDefault)
                     }
                 })
                 .catch(err => console.error("Error cargando foto:", err))
@@ -98,7 +100,7 @@ function ChatHeader({abrirInfo, amigo}){
                     <img src={VidLlamadaIcon} alt="video llamada"
                     onClick={()=>setMostrarAlert(true)} />
 
-                    <img src={BuscarIcon} alt="buscarMensaje" />
+                    {/* <img src={BuscarIcon} alt="buscarMensaje" /> */}
                 </div>
 
             </div>

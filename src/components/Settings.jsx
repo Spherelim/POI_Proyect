@@ -1,6 +1,9 @@
 import "./Settings.css"
 import { useState, useEffect, useRef } from "react"
 
+import FotoDefault from "/src/assets/images/Conejito.jpg"
+import BannerDefault from "/src/assets/images/Banner 3.png"
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function Settings() {
@@ -44,8 +47,8 @@ function Settings() {
                 descripcion: data.Descripcion || ""
             })
             
-            setFotoPreview(data.Foto ? `${API_URL}${data.Foto}` : "/src/assets/images/default-avatar.png")
-            setBannerPreview(data.Banner ? `${API_URL}${data.Banner}` : "/src/assets/images/default-banner.png")
+            setFotoPreview(data.Foto ? `${API_URL}${data.Foto}` : FotoDefault)
+            setBannerPreview(data.Banner ? `${API_URL}${data.Banner}` : BannerDefault)
             setLoading(false)
         } catch (error) {
             console.error("Error cargando datos:", error)
