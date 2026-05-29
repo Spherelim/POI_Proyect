@@ -261,7 +261,21 @@ app.post("/solicitud/enviar", (req, res) => {
     db.query(sql, [idEmisor, idReceptor], (err) => {
         if (err) return res.status(500).json({ error: "Error al enviar solicitud" })
         res.json({ message: "Solicitud enviada" })
+        
+        // Llamar al endpoint de tareas sin await, en segundo plano
+        const port = process.env.PORT || 3000
+        fetch(`http://localhost:${port}/tareas/progreso`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                idUsuario: idEmisor, 
+                idTarea: 7, // ID de la tarea de login
+                incremento: 1
+            })
+        }).catch(err => console.error("Error actualizando tarea:", err))
+
     })
+
 })
 
 app.get("/solicitudes/:idUsuario", (req, res) => {
@@ -280,10 +294,77 @@ app.get("/solicitudes/:idUsuario", (req, res) => {
 
 app.put("/solicitud/responder", (req, res) => {
     const { idAmistad, accion } = req.body
-    const sql = `UPDATE amistad SET estado = ? WHERE ID_Amistad = ?`
-    db.query(sql, [accion, idAmistad], (err) => {
-        if (err) return res.status(500).json({ error: "Error al responder solicitud" })
-        res.json({ message: `Solicitud ${accion}` })
+    
+    console.log("Respondiendo a solicitud:", { idAmistad, accion })
+    
+    // Obtener usuario1 y usuario2
+    const sqlGetUsuarios = `SELECT usuario1, usuario2 FROM amistad WHERE ID_Amistad = ?`
+    
+    db.query(sqlGetUsuarios, [idAmistad], (err, result) => {
+        if (err || result.length === 0) {
+            return res.status(500).json({ error: "Error al obtener datos" })
+        }
+        
+        const idEmisor = result[0].usuario1
+        const idReceptor = result[0].usuario2
+        
+        let sql
+        let params
+        
+        if (accion === "aceptado") {
+            sql = `UPDATE amistad SET estado = 'aceptado' WHERE ID_Amistad = ?`
+            params = [idAmistad]
+        } else if (accion === "rechazado") {
+            // Eliminar la solicitud en lugar de marcarla como rechazada
+            sql = `DELETE FROM amistad WHERE ID_Amistad = ?`
+            params = [idAmistad]
+        } else {
+            return res.status(400).json({ error: "Acción no válida" })
+        }
+        
+        db.query(sql, params, (err) => {
+            if (err) {
+                console.error("Error:", err)
+                return res.status(500).json({ error: "Error al responder solicitud" })
+            }
+            res.json({ message: `Solicitud ${accion}` })
+            
+            const port = process.env.PORT || 3000
+            
+            if (accion === "aceptado") {
+                fetch(`http://localhost:${port}/tareas/progreso`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        idUsuario: idEmisor, 
+                        idTarea: 3,
+                        incremento: 1
+                    })
+                }).catch(err => console.error("Error:", err))
+                
+                fetch(`http://localhost:${port}/tareas/progreso`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        idUsuario: idReceptor, 
+                        idTarea: 3,
+                        incremento: 1
+                    })
+                }).catch(err => console.error("Error:", err))
+            }
+            
+            if (accion === "rechazado") {
+                fetch(`http://localhost:${port}/tareas/progreso`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        idUsuario: idReceptor, 
+                        idTarea: 8,
+                        incremento: 1
+                    })
+                }).catch(err => console.error("Error:", err))
+            }
+        })
     })
 })
 
@@ -389,23 +470,66 @@ app.get("/usuarios/detalles/:id", (req, res) => {
 // Endpoint para subir foto
 app.post('/upload/foto/:id', upload.single('foto'), (req, res) => {
     const { id } = req.params
+
+    if (!req.file) {
+        return res.status(400).json({ error: 'No se seleccionó ningún archivo' })
+    }
+
     const fotoUrl = `/uploads/${req.file.filename}`
     
     db.query('UPDATE usuario SET Foto = ? WHERE ID_Us = ?', [fotoUrl, id], (err) => {
-        if (err) return res.status(500).json({ error: 'Error al guardar foto' })
+        if (err) {
+            console.error("Error al guardar foto:", err)
+            return res.status(500).json({ error: 'Error al guardar foto' })
+        }
         res.json({ fotoUrl })
+
+        // Llamar al endpoint de tareas sin await, en segundo plano
+        const port = process.env.PORT || 3000
+        fetch(`http://localhost:${port}/tareas/progreso`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                idUsuario: id, 
+                idTarea: 5, // ID de la tarea de login
+                incremento: 1
+            })
+        }).catch(err => console.error("Error actualizando tarea:", err))
     })
+
 })
 
 // Endpoint para subir banner
 app.post('/upload/banner/:id', upload.single('banner'), (req, res) => {
     const { id } = req.params
+
+    if (!req.file) {
+        return res.status(400).json({ error: 'No se seleccionó ningún archivo' })
+    }
+
     const bannerUrl = `/uploads/${req.file.filename}`
     
     db.query('UPDATE usuario SET Banner = ? WHERE ID_Us = ?', [bannerUrl, id], (err) => {
-        if (err) return res.status(500).json({ error: 'Error al guardar banner' })
+        if (err) {
+            console.error("Error al guardar banner:", err)
+            return res.status(500).json({ error: 'Error al guardar banner' })
+        }
         res.json({ bannerUrl })
+        
+        // Llamar al endpoint de tareas sin await, en segundo plano
+        const port = process.env.PORT || 3000
+        fetch(`http://localhost:${port}/tareas/progreso`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                idUsuario: id, 
+                idTarea: 6, // ID de la tarea de login
+                incremento: 1
+            })
+        }).catch(err => console.error("Error actualizando tarea:", err))
+
     })
+
 })
 
 // Endpoint para actualizar usuario
@@ -532,6 +656,7 @@ app.post("/tareas/progreso", (req, res) => {
             END
         WHERE ut.id_usuario = ? 
         AND ut.id_tarea = ?
+        AND ut.Completada = 0
     `
     
     db.query(sql, [incremento, incremento, idUsuario, idTarea], (err, result) => {
