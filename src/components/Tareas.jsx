@@ -13,7 +13,7 @@ function Tareas(){
 
     useEffect(() => {
         // Obtener tareas
-        fetch(`${API_URL}/tareas`)
+        fetch(`${API_URL}/tareas/${usuario.id}`)
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
                 return res.json()
@@ -88,6 +88,8 @@ function Tareas(){
                         puntos={tarea.Puntos}
                         frecuencia={tarea.Frecuencia}
                         objetivo={tarea.Objetivo}
+                        progreso={tarea.Progreso}
+                        completada={tarea.Completada === "Completada" || tarea.Completada === 1}
                     />
                 ))}
             </div>

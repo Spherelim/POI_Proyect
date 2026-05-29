@@ -16,6 +16,16 @@
     transform:scale(1.01);
 }
 
+/* Estilo para tareas completadas */
+.Container_Card.completada {
+    background: linear-gradient(
+        90deg,
+        #3a4a6e 0%,
+        #5a6e9e 100%
+    );
+    opacity: 0.8;
+}
+
 .Info_Tarea{
     display:flex;
     justify-content:space-between;
@@ -44,9 +54,40 @@
     font-weight:bold;
 }
 
-.Puntos img{
-    width:45px;
-    height:45px;
+/* Estilos de progreso */
+.ProgresoContainer {
+    margin: 15px 0;
+}
+
+.ProgresoHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.CompletadaBadge {
+    background: #4caf50;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.BarraProgreso {
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    height: 8px;
+    overflow: hidden;
+}
+
+.BarraProgresoFill {
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
 }
 
 .Detalles_Tarea {

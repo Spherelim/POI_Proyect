@@ -3,9 +3,14 @@ import Alert from "../Alert"
 import { useState, useEffect } from "react"
 
 import FavoritoIcon from "/src/assets/icons/corazon (w).png"
+import FavoritoIconFilled from "/src/assets/icons/corazon (w1).png"
+
 import EliminarIcon from "/src/assets/icons/Contactos/eliminar-usuario (w).png"
+
 import BloquearIcon from "/src/assets/icons/prohibicion (w).png"
+
 import SilenciarIcon from "/src/assets/icons/Notificación/campana 1 (w).png"
+import SilenciarIconFilled from "/src/assets/icons/Notificación/corte-de-campana 1 (w).png"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
