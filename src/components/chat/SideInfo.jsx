@@ -25,7 +25,7 @@ function SideInfo({cerrarInfo}){
             {mostrarAlert &&(
                 <Alert
                     Titulo="Información"
-                    mensaje="Mostrar Descripcion del Side"
+                    mensaje="Esta parte de la interfaz mostrará información relevante sobre el usuario o el chat actual. Aquí podrás ver detalles como su nombre, estado, y otras opciones relacionadas."
                     cerrar={()=>setMostrarAlert(false)}
                 />
             )}

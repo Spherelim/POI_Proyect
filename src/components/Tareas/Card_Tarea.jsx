@@ -5,11 +5,15 @@ function Card_Tarea({
     descripcion,
     puntos,
     frecuencia,
-    objetivo
+    objetivo,
+    progreso = 0,
+    completada = false
 }){
 
+    const porcentaje = (progreso / objetivo) * 100
+
     return(
-        <div className="Container_Card">
+        <div className={`Container_Card ${completada ? 'completada' : ''}`}>
             <div className="Info_Tarea">
                 <div>
                     <h2>{titulo || "Sin título"}</h2>
@@ -20,6 +24,21 @@ function Card_Tarea({
                     <span style={{fontSize: "35px"}}>⭐</span>
                 </div>
             </div>
+            
+            {/* Barra de progreso */}
+            <div className="ProgresoContainer">
+                <div className="ProgresoHeader">
+                    <span>Progreso: {progreso}/{objetivo}</span>
+                    {completada && <span className="CompletadaBadge">✓ Completada</span>}
+                </div>
+                <div className="BarraProgreso">
+                    <div 
+                        className="BarraProgresoFill" 
+                        style={{ width: `${Math.min(porcentaje, 100)}%` }}
+                    />
+                </div>
+            </div>
+
             <div className="Detalles_Tarea">
                 <span>Objetivo: {objetivo || "N/A"}</span>
                 <span>Frecuencia: {frecuencia || "N/A"}</span>

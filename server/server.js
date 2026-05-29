@@ -66,14 +66,29 @@ app.post("/login", (req, res) => {
     db.query(sql, [nombreUsuario, contrasena], (err, result) => {
         if(err) return res.status(500).json({ error: "Error al iniciar sesión" })
         if(result.length === 0) return res.status(401).json({ error: "Credenciales incorrectas" })
+        
+        const userId = result[0].ID_Us
+        
         res.json({ 
             token: "token-de-ejemplo",
             user: {
-                id: result[0].ID_Us,
+                id: userId,
                 nombreUsuario: result[0].NombreUsuario,
                 nombreCompleto: result[0].NombreCompleto
             }
         })
+        
+        // Llamar al endpoint de tareas sin await, en segundo plano
+        const port = process.env.PORT || 3000
+        fetch(`http://localhost:${port}/tareas/progreso`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                idUsuario: userId, 
+                idTarea: 4, // ID de la tarea de login
+                incremento: 1
+            })
+        }).catch(err => console.error("Error actualizando tarea:", err))
     })
 })
 
@@ -314,39 +329,17 @@ app.post("/mensajes/enviar", (req, res) => {
             })
         }
     })
-})
-
-app.get("/tareas", (req, res) => {
-
-    const sql = `SELECT * FROM V_Tareas`
-    db.query(sql, (err, result) => {
-        if (err) return res.status(500).json({ error: "Error al obtener tareas" })
-        res.json(result)
-    })
-})
-
-app.get("/tareas/:id",(req,res)=>{
-
-    const id = req.params.id
-
-    const sql = `
-    SELECT *
-    FROM V_Tareas_Usuario
-    WHERE ID_Us = ?
-    `
-
-    db.query(sql,[id],(err,result)=>{
-
-        if(err){
-            return res.status(500).json({
-                error:"Error"
-            })
-        }
-
-        res.json(result)
-
-    })
-
+    
+    // Activar tarea de mensaje (después de insertar)
+    fetch(`http://localhost:${process.env.PORT || 3000}/tareas/progreso`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            idUsuario: idEmisor, 
+            idTarea: 1, // ID de la tarea de enviar mensaje
+            incremento: 1
+        })
+    }).catch(err => console.error("Error actualizando tarea:", err))
 })
 
 app.get("/usuarios/:id/puntos", (req, res) => {
@@ -414,9 +407,6 @@ app.post('/upload/banner/:id', upload.single('banner'), (req, res) => {
         res.json({ bannerUrl })
     })
 })
-
-// Servir archivos estáticos de uploads
-app.use('/uploads', express.static(uploadDir))
 
 // Endpoint para actualizar usuario
 app.put("/usuarios/actualizar/:id", (req, res) => {
@@ -526,6 +516,112 @@ app.get("/usuarios/:id/foto", (req, res) => {
     })
 })
 
+// Endpoint para actualizar progreso de tarea
+app.post("/tareas/progreso", (req, res) => {
+    const { idUsuario, idTarea, incremento = 1 } = req.body
+    
+    console.log("Actualizando tarea:", { idUsuario, idTarea, incremento })
+    
+    const sql = `
+        UPDATE usuario_tarea ut
+        INNER JOIN tarea t ON ut.id_tarea = t.ID_Tarea
+        SET ut.Progreso = ut.Progreso + ?,
+            ut.Completada = CASE 
+                WHEN ut.Progreso + ? >= t.Objetivo AND ut.Completada = 0 THEN 1 
+                ELSE ut.Completada 
+            END
+        WHERE ut.id_usuario = ? 
+        AND ut.id_tarea = ?
+    `
+    
+    db.query(sql, [incremento, incremento, idUsuario, idTarea], (err, result) => {
+        if (err) {
+            console.error("Error actualizando progreso:", err)
+            return res.status(500).json({ error: "Error al actualizar progreso" })
+        }
+        
+        console.log("Resultado update:", result)
+        
+        // Si se completó, sumar puntos
+        if (result.changedRows > 0) {
+            const sqlPuntos = `
+                UPDATE usuario u
+                SET u.Puntos = u.Puntos + (
+                    SELECT t.Puntos
+                    FROM tarea t
+                    WHERE t.ID_Tarea = ?
+                )
+                WHERE u.ID_Us = ?
+            `
+            db.query(sqlPuntos, [idTarea, idUsuario], (err2) => {
+                if (err2) console.error("Error sumando puntos:", err2)
+            })
+        }
+        
+        res.json({ 
+            message: "Progreso actualizado",
+            completada: result.changedRows > 0
+        })
+    })
+})
+
+// Endpoint para obtener progreso de tareas del usuario
+app.get("/tareas/progreso/:idUsuario", (req, res) => {
+    const { idUsuario } = req.params
+    
+    const sql = `
+        SELECT 
+            t.ID_Tarea,
+            t.Titulo,
+            t.Descripcion,
+            t.Objetivo,
+            t.Puntos,
+            IF(t.EsDiario = 0, 'Una vez', 'Diario') AS Frecuencia,
+            COALESCE(ut.Progreso, 0) AS Progreso,
+            COALESCE(ut.Completada, 0) AS Completada
+        FROM tarea t
+        LEFT JOIN usuario_tarea ut ON t.ID_Tarea = ut.id_tarea AND ut.id_usuario = ?
+        ORDER BY ut.Completada ASC, t.Objetivo DESC
+    `
+    
+    db.query(sql, [idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message })
+        res.json(result)
+    })
+})
+app.get("/tareas/:id",(req,res)=>{
+
+    const id = req.params.id
+
+    const sql = `
+    SELECT *
+    FROM V_Tareas_Usuario
+    WHERE ID_Us = ?
+    `
+
+    db.query(sql,[id],(err,result)=>{
+
+        if(err){
+            return res.status(500).json({
+                error:"Error"
+            })
+        }
+
+        res.json(result)
+
+    })
+
+})
+
+app.get("/tareas", (req, res) => {
+
+    const sql = `SELECT * FROM V_Tareas`
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener tareas" })
+        res.json(result)
+    })
+})
+
 function insertarMensaje(idCon, idEmisor, contenido, res) {
     db.query(
         "INSERT INTO mensaje (id_conversacion, id_remitente, mensaje, fechaCreacion) VALUES (?, ?, ?, NOW())",
@@ -537,6 +633,8 @@ function insertarMensaje(idCon, idEmisor, contenido, res) {
     )
 }
 
+// Servir archivos estáticos de uploads
+app.use('/uploads', express.static(uploadDir))
 
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "..", process.env.CARPETA)))
