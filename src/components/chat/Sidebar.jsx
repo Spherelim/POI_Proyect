@@ -25,10 +25,11 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                         const fotoData = await fotoRes.json()
                         return {
                             ...amigo,
-                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault
+                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault,
+                            esFavorito: amigo.Favorito === 1
                         }
                     } catch (error) {
-                        return { ...amigo, foto: FotoDefault }
+                        return { ...amigo, foto: FotoDefault, esFavorito: amigo.Favorito === 1 }
                     }
                 })
             )
@@ -63,7 +64,7 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
             {amigos.length === 0
                 ? <p style={{color:"rgba(255,255,255,0.5)", fontSize:"13px", textAlign:"center", marginTop:"20px"}}>
                     No tienes amigos aún
-                  </p>
+                </p>
                 : amigos.map(amigo => (
                     <ChatCard
                         key={amigo.ID_Us}
@@ -71,6 +72,7 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                         NomUser={amigo.NombreUsuario}
                         ultmsg="Toca para chatear"
                         time=""
+                        esFavorito={amigo.esFavorito}
                         abrirChat={() => handleSeleccionarAmigo(amigo)}
                     />
                 ))

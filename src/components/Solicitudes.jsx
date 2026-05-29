@@ -11,9 +11,11 @@ function Solicitudes({cerrar, onAmigoActualizado}){
     const [busqueda, setBusqueda] = useState("")
     const [resultados, setResultados] = useState([])
     const [solicitudes, setSolicitudes] = useState([])
+    const [bloqueados, setBloqueados] = useState([])
 
     useEffect(() => {
         cargarSolicitudes()
+        cargarBloqueados()
     }, [])
 
     const cargarSolicitudes = async () => {
@@ -36,6 +38,32 @@ function Solicitudes({cerrar, onAmigoActualizado}){
             })
         )
         setSolicitudes(solicitudesConFotos)
+    }
+
+    const cargarBloqueados = async () => {
+        const res = await fetch(`${API_URL}/bloqueados/${usuario.id}`)
+        const data = await res.json()
+        const bloqueadosConFotos = await Promise.all(
+            data.map(async (user) => {
+                try {
+                    const fotoRes = await fetch(`${API_URL}/usuarios/${user.ID_Us}/foto`)
+                    const fotoData = await fotoRes.json()
+                    return { ...user, foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault }
+                } catch { return { ...user, foto: FotoDefault } }
+            })
+        )
+        setBloqueados(bloqueadosConFotos)
+    }
+
+    const desbloquear = async (idAmigo) => {
+        await fetch(`${API_URL}/amistad/desbloquear`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idUsuario: usuario.id, idAmigo })
+        })
+        // Recargar lista de bloqueados y amigos
+        cargarBloqueados()
+        if (onAmigoActualizado) onAmigoActualizado()
     }
 
     useEffect(() => {
@@ -150,6 +178,12 @@ function Solicitudes({cerrar, onAmigoActualizado}){
                                 <span className="badge">{solicitudes.length}</span>
                             )}
                         </button>
+                        <button
+                            className={tab === "bloqueados" ? "tab activo" : "tab"}
+                            onClick={() => setTab("bloqueados")}>
+                            Bloqueados
+                            {bloqueados.length > 0 && <span className="badge">{bloqueados.length}</span>}
+                        </button>
                     </div>
                     <button className="modal-cerrar" onClick={cerrar}>✕</button>
                 </div>
@@ -203,6 +237,22 @@ function Solicitudes({cerrar, onAmigoActualizado}){
                             }
                         </>
                     )}
+
+                    {tab === "bloqueados" && (
+                        <>
+                            {bloqueados.length === 0
+                                ? <p className="vacio">No tienes usuarios bloqueados</p>
+                                : bloqueados.map(u => (
+                                    <div className="usuario-item" key={u.ID_Us}>
+                                        <Avatar foto={u.foto} nombre={u.NombreUsuario} />
+                                        <span>{u.NombreUsuario}</span>
+                                        <button className="btn-desbloquear" onClick={() => desbloquear(u.ID_Us)}>Desbloquear</button>
+                                    </div>
+                                ))
+                            }
+                        </>
+                    )}
+
                 </div>
 
             </div>

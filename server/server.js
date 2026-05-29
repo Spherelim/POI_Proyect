@@ -218,20 +218,65 @@ app.get("/usuarios/buscar", (req, res) => {
     })
 })
 
+// Endpoint para obtener amigos (solo aceptados, no bloqueados) con información de favorito
 app.get("/amigos/:idUsuario", (req, res) => {
     const idUsuario = parseInt(req.params.idUsuario)
     const sql = `
-        SELECT u.ID_Us, u.NombreUsuario
+        SELECT 
+            u.ID_Us, 
+            u.NombreUsuario,
+            a.Favorito
         FROM amistad a
         INNER JOIN usuario u ON (
             (a.usuario1 = ? AND a.usuario2 = u.ID_Us) OR
             (a.usuario2 = ? AND a.usuario1 = u.ID_Us)
         )
-        WHERE (a.usuario1 = ? OR a.usuario2 = ?) AND a.estado = 'aceptado'
+        WHERE (a.usuario1 = ? OR a.usuario2 = ?) 
+        AND a.estado = 'aceptado'
+        ORDER BY a.Favorito DESC, u.NombreUsuario ASC
     `
     db.query(sql, [idUsuario, idUsuario, idUsuario, idUsuario], (err, result) => {
         if (err) return res.status(500).json({ error: "Error al obtener amigos" })
         res.json(result)
+    })
+})
+
+// Endpoint para obtener usuarios bloqueados por el usuario actual
+app.get("/bloqueados/:idUsuario", (req, res) => {
+    const idUsuario = parseInt(req.params.idUsuario)
+    const sql = `
+        SELECT 
+            u.ID_Us, 
+            u.NombreUsuario
+        FROM amistad a
+        INNER JOIN usuario u ON (
+            (a.usuario1 = ? AND a.usuario2 = u.ID_Us) OR
+            (a.usuario2 = ? AND a.usuario1 = u.ID_Us)
+        )
+        WHERE (a.usuario1 = ? OR a.usuario2 = ?) 
+        AND a.estado = 'bloqueado'
+    `
+    db.query(sql, [idUsuario, idUsuario, idUsuario, idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener bloqueados" })
+        res.json(result)
+    })
+})
+
+// Endpoint para desbloquear usuario
+app.put("/amistad/desbloquear", (req, res) => {
+    const { idUsuario, idAmigo } = req.body
+    const sql = `
+        UPDATE amistad 
+        SET estado = 'aceptado' 
+        WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
+        AND estado = 'bloqueado'
+    `
+    db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al desbloquear" })
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "No se encontró bloqueo" })
+        }
+        res.json({ message: "Usuario desbloqueado correctamente" })
     })
 })
 

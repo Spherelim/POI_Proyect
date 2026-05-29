@@ -98,6 +98,8 @@ function UserPerfil({ amigo, usuarioActualId }){
                     favorito: nuevoEstado 
                 })
             })
+
+            console.log(`Amigo ${nuevoEstado ? "marcado como favorito" : "removido de favoritos"}`)
         } catch (error) {
             console.error("Error:", error)
             setEsFavorito(!nuevoEstado)

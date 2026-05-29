@@ -100,7 +100,7 @@ function ChatHeader({abrirInfo, amigo}){
                     <img src={VidLlamadaIcon} alt="video llamada"
                     onClick={()=>setMostrarAlert(true)} />
 
-                    <img src={BuscarIcon} alt="buscarMensaje" />
+                    {/* <img src={BuscarIcon} alt="buscarMensaje" /> */}
                 </div>
 
             </div>
