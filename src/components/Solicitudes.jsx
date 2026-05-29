@@ -1,6 +1,8 @@
 import "./Solicitudes.css"
 import { useState, useEffect } from "react"
 
+import FotoDefault from "/src/assets/images/Conejito.jpg"
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function Solicitudes({cerrar, onAmigoActualizado}){
@@ -26,10 +28,10 @@ function Solicitudes({cerrar, onAmigoActualizado}){
                     const fotoData = await fotoRes.json()
                     return {
                         ...solicitud,
-                        foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                        foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault
                     }
                 } catch (error) {
-                    return { ...solicitud, foto: null }
+                    return { ...solicitud, foto: FotoDefault }
                 }
             })
         )
@@ -53,10 +55,10 @@ function Solicitudes({cerrar, onAmigoActualizado}){
                         const fotoData = await fotoRes.json()
                         return {
                             ...user,
-                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault
                         }
                     } catch (error) {
-                        return { ...user, foto: null }
+                        return { ...user, foto: FotoDefault }
                     }
                 })
             )
@@ -81,10 +83,10 @@ function Solicitudes({cerrar, onAmigoActualizado}){
                     const fotoData = await fotoRes.json()
                     return {
                         ...user,
-                        foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                        foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault
                     }
                 } catch (error) {
-                    return { ...user, foto: null }
+                    return { ...user, foto: FotoDefault }
                 }
             })
         )

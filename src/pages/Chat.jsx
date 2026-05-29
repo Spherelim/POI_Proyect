@@ -237,6 +237,7 @@ function Chat(){
                 <ChatInfoPanel 
                     cerrarInfo={() => setMostrarInfo(false)}
                     amigo={amigoActivo}
+                    usuarioActualId={usuario.id}
                 />
             )}
 

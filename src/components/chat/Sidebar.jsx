@@ -3,6 +3,8 @@ import ChatCard from "./ChatCard"
 import "./Sidebar.css"
 import { useState, useEffect } from "react"
 
+import FotoDefault from "/src/assets/images/Conejito.jpg"
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSidebar}){
@@ -23,10 +25,10 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                         const fotoData = await fotoRes.json()
                         return {
                             ...amigo,
-                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : null
+                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault
                         }
                     } catch (error) {
-                        return { ...amigo, foto: null }
+                        return { ...amigo, foto: FotoDefault }
                     }
                 })
             )

@@ -1,6 +1,8 @@
 import "./PerfilCard.css"
 import { useState, useEffect } from "react"
 
+import FotoDefault from "/src/assets/images/Conejito.jpg"
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function PerfilCard({cambiarVista, abrirSolicitudes}){
@@ -33,7 +35,7 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
             if (data.Foto) {
                 setFotoPerfil(`${API_URL}${data.Foto}`)
             } else {
-                setFotoPerfil("")
+                setFotoPerfil(FotoDefault)
             }
         } catch (error) {
             console.error("Error cargando foto:", error)
