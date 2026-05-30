@@ -1,6 +1,7 @@
 import "./GroupPerfil.css"
 import Alert from "../Alert"
 import { useState, useEffect, useRef } from "react"
+import { toast } from "react-toastify"
 
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 import BannerDefault from "/src/assets/images/Banner 3.png"
@@ -87,11 +88,13 @@ function GroupPerfil({ grupo, usuarioActualId, alSalirGrupo }){
             if (res.ok) {
                 setMostrarAgregarMiembro(false)
                 cargarDetallesGrupo()
+                toast.success("Miembro agregado con éxito")
             } else {
-                alert(data.error || "Error al agregar miembro")
+                toast.error(data.error || "Error al agregar miembro")
             }
         } catch (error) {
             console.error("Error agregando miembro:", error)
+            toast.error("Error al conectar con el servidor.")
         }
     }
 

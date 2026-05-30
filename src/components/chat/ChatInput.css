@@ -6,32 +6,53 @@
     src: url("../assets/fonts/BowlbyOneSC-Regular.ttf");
 }
 
+/* Wrapper que agrupa el preview + la barra */
+.chat-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* ── Barra principal ─────────────────────────── */
 .chat-input {
     display: flex;
     align-items: center;
     padding: 10px 14px;
     gap: 8px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 5;
     background: rgba(0,0,0,0.08);
     border-top: 1px solid rgba(255,255,255,0.06);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
-.chat-input img {
+/* ── Botón adjuntar (label encima del input[file]) ── */
+.btn-adjuntar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.btn-adjuntar img {
     width: 36px;
     height: 36px;
     min-width: 36px;
-    background: none;
-    border: none;
-    cursor: pointer;
     padding: 4px;
     transition: transform 0.2s;
+    pointer-events: none;
 }
 
-.chat-input img:hover { transform: scale(1.12); }
+.btn-adjuntar:hover img { transform: scale(1.12); }
 
-.chat-input input {
+/* ── Input de texto ──────────────────────────── */
+.chat-text-input {
     font-family: "Mundial", sans-serif;
     flex: 1;
     min-width: 0;
@@ -45,12 +66,189 @@
     transition: border-color 0.2s;
 }
 
-.chat-input input:focus { border-color: #5b6f94; }
-.chat-input input::placeholder { color: #888; }
+.chat-text-input:focus { border-color: #5b6f94; }
+.chat-text-input::placeholder { color: #888; }
+.chat-text-input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Botón enviar ────────────────────────────── */
+.btn-enviar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    border: none;
+    background: #5474C7;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.15s;
+    padding: 0;
+    line-height: 1;
+}
+
+.btn-enviar:hover  { background: #3a5aaa; transform: scale(1.08); }
+.btn-enviar:active { transform: scale(0.95); }
+.btn-enviar:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ── Preview del archivo seleccionado ─────────── */
+.archivo-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(91,111,148,0.35);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    animation: slideUp 0.2s ease;
+}
+
+.archivo-preview-img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+}
+
+.archivo-preview-icon {
+    font-size: 32px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.archivo-preview-nombre {
+    flex: 1;
+    font-size: 13px;
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.archivo-subiendo {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+    animation: pulse 0.8s infinite alternate;
+}
+
+.archivo-cancelar {
+    background: rgba(231,76,60,0.55);
+    border: none;
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    padding: 0;
+}
+
+.archivo-cancelar:hover { background: rgba(231,76,60,0.9); }
+
+/* ── Animaciones ─────────────────────────────── */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    from { opacity: 0.5; }
+    to   { opacity: 1; }
+}
+
+/* ── Control de Encriptación Toggle ── */
+.encriptacion-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.encriptacion-switch {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.encriptacion-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.encriptacion-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.15);
+    transition: 0.3s;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.encriptacion-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #888;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.encriptacion-switch input:checked + .encriptacion-slider {
+    background-color: rgba(46, 204, 113, 0.25);
+    border-color: rgba(46, 204, 113, 0.5);
+}
+
+.encriptacion-switch input:checked + .encriptacion-slider:before {
+    transform: translateX(18px);
+    background-color: #2ecc71;
+}
+
+.encriptacion-label-text {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: "Mundial", sans-serif;
+    transition: color 0.3s;
+}
+
+.encriptacion-label-text.activa {
+    color: #2ecc71;
+    text-shadow: 0 0 8px rgba(46, 204, 113, 0.3);
+}
 
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 480px) {
-    .chat-input { padding: 8px 10px; }
-    .chat-input img { width: 30px; height: 30px; min-width: 30px; }
-    .chat-input input { padding: 9px 14px; font-size: 13px; }
+    .chat-input { padding: 8px 10px; gap: 6px; }
+    .btn-adjuntar img { width: 30px; height: 30px; min-width: 30px; }
+    .chat-text-input { padding: 9px 12px; font-size: 13px; }
+    .btn-enviar { width: 36px; height: 36px; min-width: 36px; font-size: 16px; }
+    .archivo-preview { padding: 6px 10px; }
+    .archivo-preview-img { width: 44px; height: 44px; }
+    .archivo-preview-icon { font-size: 26px; }
+    .encriptacion-toggle-container { padding: 5px 10px; }
+    .encriptacion-label-text { font-size: 10px; }
 }

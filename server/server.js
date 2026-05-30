@@ -8,6 +8,14 @@ const path = require("path")
 
 const multer = require("multer")
 const fs = require("fs")
+const cloudinary = require("cloudinary").v2
+
+// Configurar Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+})
 
 const uploadDir = path.join(__dirname, "uploads")
 if (!fs.existsSync(uploadDir)) {
@@ -36,6 +44,36 @@ const upload = multer({
         } else {
             cb(new Error("Solo se permiten imágenes"))
         }
+    }
+})
+
+// Storage separado para archivos de mensajes (imágenes + documentos)
+const mensajesDir = path.join(__dirname, "uploads", "mensajes")
+if (!fs.existsSync(mensajesDir)) fs.mkdirSync(mensajesDir, { recursive: true })
+
+const storageMensajes = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, mensajesDir),
+    filename: (req, file, cb) => {
+        const unique = Date.now() + "-" + Math.round(Math.random() * 1e9)
+        cb(null, unique + path.extname(file.originalname))
+    }
+})
+
+const uploadMensaje = multer({
+    storage: storageMensajes,
+    limits: { fileSize: 15 * 1024 * 1024 }, // 15 MB
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|gif|webp|pdf|txt|doc|docx|xls|xlsx|zip/
+        const ext = allowed.test(path.extname(file.originalname).toLowerCase())
+        const mime = [
+            "image/jpeg","image/png","image/gif","image/webp",
+            "application/pdf","text/plain",
+            "application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/zip"
+        ].includes(file.mimetype)
+        if (ext && mime) return cb(null, true)
+        cb(new Error("Tipo de archivo no permitido"))
     }
 })
 
@@ -503,7 +541,8 @@ app.put("/amistad/desbloquear", (req, res) => {
 app.get("/mensajes/grupo/:idConversacion", (req, res) => {
     const { idConversacion } = req.params;
     const sql = `
-        SELECT m.ID_Mensaje, m.mensaje, m.fechaCreacion, m.id_remitente, u.NombreUsuario
+        SELECT m.ID_Mensaje, m.mensaje, m.fechaCreacion, m.id_remitente, u.NombreUsuario,
+               COALESCE(m.tipo, 'texto') AS tipo, m.archivo
         FROM mensaje m
         INNER JOIN usuario u ON m.id_remitente = u.ID_Us
         WHERE m.id_conversacion = ?
@@ -520,8 +559,11 @@ app.get("/mensajes/grupo/:idConversacion", (req, res) => {
 
 app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
     const { idUsuario, idAmigo } = req.params;
-    const sql = `
-        SELECT m.ID_Mensaje, m.mensaje, m.fechaCreacion, m.id_remitente
+    
+    // Consulta para traer los mensajes de la conversación
+    const sqlSelect = `
+        SELECT m.ID_Mensaje, m.mensaje, m.fechaCreacion, m.id_remitente,
+               COALESCE(m.tipo, 'texto') AS tipo, m.archivo
         FROM mensaje m
         INNER JOIN conversacion c ON m.id_conversacion = c.ID_Conversacion
         INNER JOIN conversacion_usuario cu1 ON cu1.id_conversacion = m.id_conversacion AND cu1.id_usuario = ?
@@ -529,8 +571,23 @@ app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
         WHERE (c.esGrupo IS NULL OR c.esGrupo = 0)
         ORDER BY m.fechaCreacion ASC
     `
-    db.query(sql, [idUsuario, idAmigo], (err, result) => {
+    
+    db.query(sqlSelect, [idUsuario, idAmigo], (err, result) => {
         if (err) return res.status(500).json({ error: "Error al obtener mensajes" })
+        
+        // Marcar como leídos los mensajes que envió el amigo a mí en esta conversación
+        const sqlUpdate = `
+            UPDATE mensaje m
+            INNER JOIN conversacion c ON m.id_conversacion = c.ID_Conversacion
+            INNER JOIN conversacion_usuario cu1 ON cu1.id_conversacion = m.id_conversacion AND cu1.id_usuario = ?
+            INNER JOIN conversacion_usuario cu2 ON cu2.id_conversacion = m.id_conversacion AND cu2.id_usuario = ?
+            SET m.leido = 1
+            WHERE m.id_remitente = ? AND m.leido = 0 AND (c.esGrupo IS NULL OR c.esGrupo = 0)
+        `
+        db.query(sqlUpdate, [idUsuario, idAmigo, idAmigo], (errUpdate) => {
+            if (errUpdate) console.error("Error al marcar mensajes como leídos:", errUpdate)
+        })
+
         res.json(result)
     })
 })
@@ -544,10 +601,14 @@ app.post("/mensajes/enviar", (req, res) => {
         WHERE cu1.id_usuario = ? AND cu2.id_usuario = ? AND (c.esGrupo IS NULL OR c.esGrupo = 0)
         LIMIT 1
     `
+    // Verificar si el receptor tiene un socket abierto (está en línea)
+    const receptorOnline = usuariosConectados.has(parseInt(idReceptor)) || usuariosConectados.has(String(idReceptor))
+    const leido = receptorOnline ? 1 : 0
+
     db.query(sqlBuscar, [idEmisor, idReceptor], (err, result) => {
         if (err) return res.status(500).json({ error: "Error" })
         if (result.length > 0) {
-            insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res)
+            insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res, "texto", null, leido)
         } else {
             db.query("INSERT INTO conversacion (esGrupo) VALUES (0)", (err, r) => {
                 if (err) return res.status(500).json({ error: "Error al crear conversación" })
@@ -557,7 +618,7 @@ app.post("/mensajes/enviar", (req, res) => {
                     [idCon, idEmisor, idCon, idReceptor],
                     (err) => {
                         if (err) return res.status(500).json({ error: "Error" })
-                        insertarMensaje(idCon, idEmisor, contenido, res)
+                        insertarMensaje(idCon, idEmisor, contenido, res, "texto", null, leido)
                     }
                 )
             })
@@ -1191,16 +1252,112 @@ app.get("/tareas", (req, res) => {
     })
 })
 
-function insertarMensaje(idCon, idEmisor, contenido, res) {
+function insertarMensaje(idCon, idEmisor, contenido, res, tipo = "texto", archivo = null, leido = 0) {
     db.query(
-        "INSERT INTO mensaje (id_conversacion, id_remitente, mensaje, fechaCreacion) VALUES (?, ?, ?, NOW())",
-        [idCon, idEmisor, contenido],
+        "INSERT INTO mensaje (id_conversacion, id_remitente, mensaje, fechaCreacion, tipo, archivo, leido) VALUES (?, ?, ?, NOW(), ?, ?, ?)",
+        [idCon, idEmisor, contenido, tipo, archivo, leido],
         (err) => {
             if (err) return res.status(500).json({ error: "Error al insertar mensaje" })
-            res.json({ message: "Mensaje enviado" })
+            res.json({ message: "Mensaje enviado", tipo, archivo, leido })
         }
     )
 }
+
+// Función auxiliar para subir a Cloudinary con fallback local
+async function subirACloudinaryOFallback(file, folder = "mensajes") {
+    const localPath = file.path
+    const rutaLocalRelativa = "/uploads/mensajes/" + file.filename
+
+    // Verificar si las credenciales existen
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.warn("⚠️ Advertencia: Falta configurar Cloudinary en .env. Se usará almacenamiento local.")
+        return rutaLocalRelativa
+    }
+
+    try {
+        const res = await cloudinary.uploader.upload(localPath, {
+            folder: `mundichat/${folder}`,
+            resource_type: "auto"
+        })
+        
+        // Intentar borrar archivo temporal local
+        try {
+            fs.unlinkSync(localPath)
+        } catch (errUnlink) {
+            console.error("Error al borrar archivo local temporal:", errUnlink)
+        }
+
+        console.log("☁️ Archivo subido exitosamente a Cloudinary:", res.secure_url)
+        return res.secure_url // Retorna la URL externa HTTPS
+    } catch (error) {
+        console.error("❌ Error al subir a Cloudinary (usando fallback local):", error)
+        return rutaLocalRelativa // Fallback local
+    }
+}
+
+// ── Enviar archivo en chat privado ────────────────────────────
+app.post("/mensajes/archivo", uploadMensaje.single("archivo"), async (req, res) => {
+    const { idEmisor, idReceptor } = req.body
+    if (!req.file) return res.status(400).json({ error: "No se recibió el archivo" })
+    if (!idEmisor || !idReceptor) return res.status(400).json({ error: "Faltan parámetros" })
+
+    const imageTypes = /\.(jpg|jpeg|png|gif|webp)$/i
+    const tipo = imageTypes.test(req.file.originalname) ? "imagen" : "archivo"
+
+    // Subir a Cloudinary (o fallback local)
+    const urlArchivo = await subirACloudinaryOFallback(req.file)
+
+    // Buscar o crear conversación privada (esGrupo = 0)
+    const sqlConv = `
+        SELECT id_conversacion FROM conversacion
+        WHERE (esGrupo = 0 OR esGrupo IS NULL)
+          AND id_conversacion IN (
+              SELECT id_conversacion FROM conversacion_usuario WHERE id_usuario = ?
+          )
+          AND id_conversacion IN (
+              SELECT id_conversacion FROM conversacion_usuario WHERE id_usuario = ?
+          )
+        LIMIT 1
+    `
+    // Verificar si el receptor tiene un socket abierto (está en línea)
+    const receptorOnline = usuariosConectados.has(parseInt(idReceptor)) || usuariosConectados.has(String(idReceptor))
+    const leido = receptorOnline ? 1 : 0
+
+    db.query(sqlConv, [idEmisor, idReceptor], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message })
+        if (rows.length > 0) {
+            insertarMensaje(rows[0].id_conversacion, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
+        } else {
+            db.query("INSERT INTO conversacion (esGrupo) VALUES (0)", (err2, result) => {
+                if (err2) return res.status(500).json({ error: err2.message })
+                const idCon = result.insertId
+                db.query("INSERT INTO conversacion_usuario (id_conversacion, id_usuario) VALUES (?,?),(?,?)",
+                    [idCon, idEmisor, idCon, idReceptor],
+                    (err3) => {
+                        if (err3) return res.status(500).json({ error: err3.message })
+                        insertarMensaje(idCon, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
+                    }
+                )
+            })
+        }
+    })
+})
+
+// ── Enviar archivo en chat grupal ─────────────────────────────
+app.post("/mensajes/grupo/archivo", uploadMensaje.single("archivo"), async (req, res) => {
+    const { idConversacion, idEmisor } = req.body
+    if (!req.file) return res.status(400).json({ error: "No se recibió el archivo" })
+    if (!idConversacion || !idEmisor) return res.status(400).json({ error: "Faltan parámetros" })
+
+    const imageTypes = /\.(jpg|jpeg|png|gif|webp)$/i
+    const tipo = imageTypes.test(req.file.originalname) ? "imagen" : "archivo"
+
+    // Subir a Cloudinary (o fallback local)
+    const urlArchivo = await subirACloudinaryOFallback(req.file)
+
+    insertarMensaje(idConversacion, idEmisor, req.file.originalname, res, tipo, urlArchivo)
+})
+
 
 // Servir archivos estáticos de uploads
 app.use('/uploads', express.static(uploadDir))
@@ -1236,6 +1393,38 @@ io.on("connection", (socket) => {
         
         socket.broadcast.emit(`user_status_${idUsuario}`, "online")
         console.log(`Usuario ${idUsuario} está online`)
+
+        // --- ENVIAR MENSAJES PENDIENTES ---
+        const sqlPendientes = `
+            SELECT m.ID_Mensaje, m.id_conversacion, m.id_remitente, m.mensaje, m.tipo, m.archivo, m.fechaCreacion, u.NombreUsuario AS nombreEmisor
+            FROM mensaje m
+            INNER JOIN conversacion_usuario cu_destino ON m.id_conversacion = cu_destino.id_conversacion
+            INNER JOIN usuario u ON m.id_remitente = u.ID_Us
+            INNER JOIN conversacion c ON m.id_conversacion = c.ID_Conversacion
+            WHERE cu_destino.id_usuario = ? 
+              AND m.id_remitente != ?
+              AND m.leido = 0
+              AND (c.esGrupo = 0 OR c.esGrupo IS NULL)
+        `
+        db.query(sqlPendientes, [idUsuario, idUsuario], (err, pendingMsgs) => {
+            if (err) {
+                console.error("Error al obtener mensajes pendientes:", err)
+                return
+            }
+
+            if (pendingMsgs.length > 0) {
+                console.log(`Enviando ${pendingMsgs.length} mensajes pendientes al usuario ${idUsuario}`)
+                
+                // Emitir todos los mensajes acumulados al usuario
+                socket.emit("mensajes_pendientes", pendingMsgs)
+
+                // Marcar como leídos
+                const ids = pendingMsgs.map(m => m.ID_Mensaje)
+                db.query("UPDATE mensaje SET leido = 1 WHERE ID_Mensaje IN (?)", [ids], (errUpdate) => {
+                    if (errUpdate) console.error("Error actualizando estado de leídos:", errUpdate)
+                })
+            }
+        })
     })
 
     socket.on("check_status", (idUsuario, callback) => {

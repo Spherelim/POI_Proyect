@@ -2,6 +2,7 @@ import PerfilCard from "./PerfilCard";
 import ChatCard from "./ChatCard"
 import "./Sidebar.css"
 import { useState, useEffect } from "react"
+import { toast } from "react-toastify"
 
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 
@@ -95,12 +96,12 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
         e.preventDefault()
         
         if (!nombreGrupo.trim()) {
-            alert("Por favor, ingresa un nombre para el grupo.")
+            toast.warning("Por favor, ingresa un nombre para el grupo.")
             return
         }
 
         if (seleccionados.length < 2) {
-            alert("Debes seleccionar al menos 2 amigos para crear un grupo (mínimo 3 personas en total).")
+            toast.warning("Debes seleccionar al menos 2 amigos para crear un grupo (mínimo 3 personas en total).")
             return
         }
 
@@ -118,17 +119,17 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
             const data = await res.json()
 
             if (res.ok) {
-                alert("Grupo creado con éxito")
+                toast.success("Grupo creado con éxito")
                 setNombreGrupo("")
                 setSeleccionados([])
                 setMostrarModal(false)
                 cargarGrupos()
             } else {
-                alert(data.error || "Error al crear grupo")
+                toast.error(data.error || "Error al crear grupo")
             }
         } catch (error) {
             console.error("Error creando grupo:", error)
-            alert("Error al conectar con el servidor.")
+            toast.error("Error al conectar con el servidor.")
         }
     }
 

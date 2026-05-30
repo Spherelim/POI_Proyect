@@ -1,4 +1,6 @@
 import "./Chat.css"
+import { toast } from "react-toastify"
+
 
 import Sidebar from "../components/chat/Sidebar"
 import ChatHeader from "../components/chat/ChatHeader"
@@ -12,6 +14,7 @@ import Solicitudes from "../components/Solicitudes"
 
 import { useEffect, useState, useRef } from "react"
 import { socket } from "../socket"
+import { encriptar, desencriptar } from "../utils/crypto"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
@@ -25,6 +28,7 @@ function Chat(){
     const amigoActivoRef = useRef(null)
     const [mensaje, setMensaje] = useState("")
     const [mensajes, setMensajes] = useState([])
+    const [encriptarMensajes, setEncriptarMensajes] = useState(false) // Toggle de encriptación
     const mensajesEndRef = useRef(null)
     const mensajesContainerRef = useRef(null)
     const [actualizarSidebar, setActualizarSidebar] = useState(0)
@@ -143,7 +147,9 @@ function Chat(){
             const formateados = data.map(m => ({
                 text: m.mensaje,
                 type: String(m.id_remitente) === String(usuario?.id) ? "right" : "left",
-                senderName: activo.esGrupo ? (m.NombreUsuario || m.nombreUsuario) : null
+                senderName: activo.esGrupo ? (m.NombreUsuario || m.nombreUsuario) : null,
+                tipo: m.tipo || "texto",
+                archivo: m.archivo || null
             }))
             setMensajes(formateados)
         } catch (error) {
@@ -156,8 +162,21 @@ function Chat(){
         socket.on("mensaje", (data) => {
             console.log("Mensaje recibido por socket:", data)
             const amigoActual = amigoActivoRef.current
+            
+            // Descifrar si viene encriptado para mostrarlo en el Toast/Mensaje
+            const textoLimpio = desencriptar(data.text)
+
             if (amigoActual && !amigoActual.esGrupo && String(data.idEmisor) === String(amigoActual.ID_Us)) {
-                setMensajes(prev => [...prev, { text: data.text, type: "left" }])
+                setMensajes(prev => [...prev, { 
+                    text: data.text, 
+                    type: "left",
+                    tipo: data.tipo || "texto",
+                    archivo: data.archivo || null
+                }])
+            } else {
+                // Notificar en Toast de forma elegante
+                const contenidoMostrar = data.tipo === "imagen" ? "🖼️ Imagen" : data.tipo === "archivo" ? "📎 Archivo" : textoLimpio
+                toast.info(`✉️ Nuevo mensaje de ${data.nombreEmisor || "un contacto"}: "${contenidoMostrar}"`)
             }
         })
 
@@ -165,25 +184,59 @@ function Chat(){
         socket.on("mensaje_grupo", (data) => {
             console.log("Mensaje grupal recibido por socket:", data)
             const amigoActual = amigoActivoRef.current
+            
+            // Descifrar si viene encriptado
+            const textoLimpio = desencriptar(data.text)
+
             if (amigoActual && amigoActual.esGrupo && String(data.idConversacion) === String(amigoActual.ID_Conversacion)) {
                 setMensajes(prev => [...prev, { 
                     text: data.text, 
                     type: "left", 
-                    senderName: data.nombreEmisor 
+                    senderName: data.nombreEmisor,
+                    tipo: data.tipo || "texto",
+                    archivo: data.archivo || null
                 }])
+            } else {
+                // Notificar en Toast de forma elegante
+                const contenidoMostrar = data.tipo === "imagen" ? "🖼️ Imagen" : data.tipo === "archivo" ? "📎 Archivo" : textoLimpio
+                toast.info(`👥 Grupo "${data.nombreGrupo || "Grupal"}": [${data.nombreEmisor || "Miembro"}]: "${contenidoMostrar}"`)
             }
+        })
+
+        // Mensajes recibidos mientras estabas desconectado
+        socket.on("mensajes_pendientes", (pendingMsgs) => {
+            console.log("Mensajes pendientes recibidos:", pendingMsgs)
+            
+            pendingMsgs.forEach(msg => {
+                // Notificación visual de Toast
+                toast.info(`✉️ Nuevo mensaje de ${msg.nombreEmisor}`)
+
+                // Si el chat con el emisor está abierto actualmente, pintarlo en vivo
+                const amigoActual = amigoActivoRef.current
+                if (amigoActual && !amigoActual.esGrupo && String(msg.id_remitente) === String(amigoActual.ID_Us)) {
+                    setMensajes(prev => [...prev, {
+                        text: msg.mensaje,
+                        type: "left",
+                        tipo: msg.tipo || "texto",
+                        archivo: msg.archivo || null
+                    }])
+                }
+            })
         })
 
         return () => { 
             socket.off("mensaje") 
             socket.off("mensaje_grupo")
+            socket.off("mensajes_pendientes")
         }
     }, [])
 
     const enviarMensaje = async () => {
         if (mensaje.trim() === "" || !amigoActivo) return
 
-        const textoEnviar = mensaje
+        // Si la encriptación está activa, encriptar el mensaje. Si no, mandarlo plano.
+        const textoEnviar = encriptarMensajes ? encriptar(mensaje) : mensaje
+        const mensajeParaMi = encriptarMensajes ? encriptar(mensaje) : mensaje
         setMensaje("")
 
         try {
@@ -202,10 +255,11 @@ function Chat(){
                     idConversacion: amigoActivo.ID_Conversacion,
                     text: textoEnviar,
                     idEmisor: usuario.id,
-                    nombreEmisor: usuario.nombreUsuario
+                    nombreEmisor: usuario.nombreUsuario || usuario.NombreUsuario,
+                    nombreGrupo: amigoActivo.nombreGrupo
                 })
 
-                setMensajes(prev => [...prev, { text: textoEnviar, type: "right" }])
+                setMensajes(prev => [...prev, { text: mensajeParaMi, type: "right", tipo: "texto" }])
             } else {
                 await fetch(`${API_URL}/mensajes/enviar`, {
                     method: "POST",
@@ -220,13 +274,50 @@ function Chat(){
                 socket.emit("mensaje", {
                     text: textoEnviar,
                     idEmisor: usuario.id,
-                    idReceptor: amigoActivo.ID_Us
+                    idReceptor: amigoActivo.ID_Us,
+                    nombreEmisor: usuario.nombreUsuario || usuario.NombreUsuario
                 })
 
-                setMensajes(prev => [...prev, { text: textoEnviar, type: "right" }])
+                setMensajes(prev => [...prev, { text: mensajeParaMi, type: "right", tipo: "texto" }])
             }
         } catch (error) {
             console.error("Error enviando mensaje:", error)
+        }
+    }
+
+    // Callback cuando se sube un archivo exitosamente
+    const handleArchivoEnviado = (file, activo, urlFinal) => {
+        const esImagen = file.type.startsWith("image/")
+        const tipo = esImagen ? "imagen" : "archivo"
+
+        // Agregar el mensaje localmente con la URL final (Cloudinary o Fallback)
+        setMensajes(prev => [...prev, {
+            text: file.name,
+            type: "right",
+            tipo,
+            archivo: urlFinal
+        }])
+
+        // Notificar via socket para que el receptor vea el archivo en tiempo real con su URL
+        if (activo.esGrupo) {
+            socket.emit("mensaje_grupo", {
+                idConversacion: activo.ID_Conversacion,
+                text: file.name,
+                idEmisor: usuario.id,
+                nombreEmisor: usuario.nombreUsuario || usuario.NombreUsuario,
+                nombreGrupo: activo.nombreGrupo,
+                tipo,
+                archivo: urlFinal
+            })
+        } else {
+            socket.emit("mensaje", {
+                text: file.name,
+                idEmisor: usuario.id,
+                idReceptor: activo.ID_Us,
+                nombreEmisor: usuario.nombreUsuario || usuario.NombreUsuario,
+                tipo,
+                archivo: urlFinal
+            })
         }
     }
 
@@ -346,7 +437,14 @@ function Chat(){
                                         </p>
                                     ) : (
                                         mensajes.map((msg, index) => (
-                                            <Message key={index} text={msg.text} type={msg.type} senderName={msg.senderName}/>
+                                            <Message
+                                                key={index}
+                                                text={encriptarMensajes ? desencriptar(msg.text) : msg.text}
+                                                type={msg.type}
+                                                senderName={msg.senderName}
+                                                tipo={msg.tipo}
+                                                archivo={msg.archivo}
+                                            />
                                         ))
                                     )}
                                     <div ref={mensajesEndRef}/>
@@ -355,6 +453,11 @@ function Chat(){
                                     mensaje={mensaje}
                                     setMensaje={setMensaje}
                                     enviarMensaje={enviarMensaje}
+                                    onArchivoEnviado={handleArchivoEnviado}
+                                    amigoActivo={amigoActivo}
+                                    usuarioId={usuario?.id}
+                                    encriptarMensajes={encriptarMensajes}
+                                    setEncriptarMensajes={setEncriptarMensajes}
                                 />
                             </>
                         ) : (
