@@ -18,7 +18,37 @@ function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, amigo
         const file = e.target.files[0]
         if (!file) return
 
-        const esImagen = file.type.startsWith("image/")
+        const TIPOS_IMAGEN_PERMITIDOS = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "image/avif"
+        ]
+        const TIPOS_DOC_PERMITIDOS = [
+            "application/pdf",
+            "text/plain"
+        ]
+
+        const esImagen = TIPOS_IMAGEN_PERMITIDOS.includes(file.type)
+        const esDoc = TIPOS_DOC_PERMITIDOS.includes(file.type)
+
+        if (!esImagen && !esDoc) {
+            toast.error(`Tipo de archivo no permitido. Solo se aceptan imágenes (JPG, PNG, GIF, WEBP, AVIF) y documentos (PDF, TXT).`)
+            e.target.value = ""
+            return
+        }
+
+        const MAX_FILE_SIZE_MB = 10
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            const tamanioMB = (file.size / 1024 / 1024).toFixed(1)
+            toast.error(`El archivo pesa ${tamanioMB} MB. El máximo permitido es ${MAX_FILE_SIZE_MB} MB.`)
+            e.target.value = ""
+            return
+        }
+
         setArchivoSel({
             file,
             previewUrl: esImagen ? URL.createObjectURL(file) : null,
@@ -149,7 +179,7 @@ function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, amigo
                     ref={fileRef}
                     type="file"
                     id="file-adjunto"
-                    accept="image/*,.pdf,.txt,.doc,.docx,.xls,.xlsx,.zip"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/avif,application/pdf,text/plain"
                     style={{ display: "none" }}
                     onChange={handleFileChange}
                 />

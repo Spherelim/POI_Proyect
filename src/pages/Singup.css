@@ -4,7 +4,7 @@
    ══════════════════════════════════════════════ */
 
 @font-face {
-    font-family: "MundiFont";
+    font-family: "Mundial";
     src: url("../assets/fonts/ConcertOne-Regular.ttf");
 }
 
@@ -105,7 +105,7 @@
 
 
 .Registrar {
-    font-family: "MundiFont", sans-serif;
+    font-family: "Mundial";
     font-size: clamp(32px, 8vw, 50px);
     color: white;
     margin: 0 0 22px;

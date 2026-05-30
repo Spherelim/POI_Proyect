@@ -1,7 +1,6 @@
 import "./Chat.css"
 import { toast } from "react-toastify"
 
-
 import Sidebar from "../components/chat/Sidebar"
 import ChatHeader from "../components/chat/ChatHeader"
 import ChatInput from "../components/chat/ChatInput"
@@ -15,6 +14,7 @@ import Solicitudes from "../components/Solicitudes"
 import { useEffect, useState, useRef } from "react"
 import { socket } from "../socket"
 import { encriptar, desencriptar } from "../utils/crypto"
+import FotoDefault from "/src/assets/images/Conejito.jpg"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
@@ -480,13 +480,26 @@ function Chat(){
             setActualizarSidebar(prev => prev + 1)
         }
 
-        // Cambio en el grupo activo (rol, miembros) — refrescar panel info
-        const onGrupoActualizado = ({ idConversacion, idMiembro }) => {
+        // Cambio en el grupo activo (rol, miembros, nombre, foto) — refrescar panel info y sidebar
+        const onGrupoActualizado = ({ idConversacion, tipo, grupo }) => {
             setActualizarSidebar(prev => prev + 1)
-            // Si estamos viendo ese grupo, forzar recarga del panel
-            if (amigoActivoRef.current?.ID_Conversacion === idConversacion) {
-                // Actualizar la referencia para disparar el useEffect de amigoActivo
-                setAmigoActivo(prev => prev ? { ...prev } : prev)
+            const amigoActual = amigoActivoRef.current
+            if (amigoActual && amigoActual.esGrupo && String(amigoActual.ID_Conversacion) === String(idConversacion)) {
+                if (tipo === "grupo_editado" && grupo) {
+                    setAmigoActivo(prev => {
+                        if (prev && String(prev.ID_Conversacion) === String(idConversacion)) {
+                            return {
+                                ...prev,
+                                nombreGrupo: grupo.nombreGrupo,
+                                fotoGrupo: grupo.fotoGrupo,
+                                fotoBanner: grupo.fotoBanner
+                            }
+                        }
+                        return prev
+                    })
+                } else {
+                    setAmigoActivo(prev => prev ? { ...prev } : prev)
+                }
             }
         }
 
@@ -499,14 +512,78 @@ function Chat(){
             }
         }
 
+        // ── Actualización de datos del usuario en tiempo real ────────
+        const onUsuarioActualizado = ({ idUsuario }) => {
+            setActualizarSidebar(prev => prev + 1)
+            
+            const amigoActual = amigoActivoRef.current
+            if (amigoActual && !amigoActual.esGrupo && String(amigoActual.ID_Us) === String(idUsuario)) {
+                fetch(`${API_URL}/usuarios/detalles/${idUsuario}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data) {
+                            setAmigoActivo(prev => {
+                                if (prev && String(prev.ID_Us) === String(idUsuario)) {
+                                    return {
+                                        ...prev,
+                                        NombreUsuario: data.NombreUsuario,
+                                        foto: data.Foto ? `${API_URL}${data.Foto}` : FotoDefault
+                                    }
+                                }
+                                return prev
+                            })
+                        }
+                    })
+                    .catch(e => console.error("Error al obtener detalles actualizados:", e))
+            }
+        }
+
+        // ── Solicitud de amistad recibida ─────────────────────────────
+        const onSolicitudRecibida = ({ idEmisor }) => {
+            setActualizarSidebar(prev => prev + 1)
+            
+            fetch(`${API_URL}/usuarios/detalles/${idEmisor}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.NombreUsuario) {
+                        toast.info(`¡Nueva solicitud de amistad de ${data.NombreUsuario}!`)
+                    }
+                })
+                .catch(() => {
+                    toast.info(`¡Has recibido una nueva solicitud de amistad!`)
+                })
+        }
+
+        // ── Relación de amistad actualizada ───────────────────────────
+        const onAmistadActualizada = ({ idAmigo, accion }) => {
+            setActualizarSidebar(prev => prev + 1)
+            
+            const amigoActual = amigoActivoRef.current
+            if (amigoActual && !amigoActual.esGrupo && String(amigoActual.ID_Us) === String(idAmigo)) {
+                if (accion === "eliminado" || accion === "bloqueado") {
+                    toast.warn(`La relación de amistad con este usuario ha cambiado. El chat se ha cerrado.`)
+                    setAmigoActivo(null)
+                    setMostrarInfo(false)
+                } else if (accion === "aceptado" || accion === "desbloqueado") {
+                    setAmigoActivo(prev => prev ? { ...prev } : prev)
+                }
+            }
+        }
+
         socket.on("grupo_creado", onGrupoCreado)
         socket.on("grupo_actualizado", onGrupoActualizado)
         socket.on("expulsado_grupo", onExpulsadoGrupo)
+        socket.on("usuario_actualizado", onUsuarioActualizado)
+        socket.on("solicitud_recibida", onSolicitudRecibida)
+        socket.on("amistad_actualizada", onAmistadActualizada)
 
         return () => {
             socket.off("grupo_creado", onGrupoCreado)
             socket.off("grupo_actualizado", onGrupoActualizado)
             socket.off("expulsado_grupo", onExpulsadoGrupo)
+            socket.off("usuario_actualizado", onUsuarioActualizado)
+            socket.off("solicitud_recibida", onSolicitudRecibida)
+            socket.off("amistad_actualizada", onAmistadActualizada)
         }
     }, [])
 
@@ -887,6 +964,7 @@ function Chat(){
 
     const handleCambiarVista = (vista) => {
         setVista(vista)
+        setMostrarInfo(false)
         // En móvil: ocultar sidebar para ver el contenido
         if (isMobile()) setSidebarVisible(false)
     }
@@ -965,7 +1043,10 @@ function Chat(){
         <div className="Content-Chat">
             <Sidebar
                 cambiarVista={handleCambiarVista}
-                abrirSolicitudes={() => setMostrarSolicitudes(true)}
+                abrirSolicitudes={() => {
+                    setMostrarSolicitudes(true)
+                    setMostrarInfo(false)
+                }}
                 seleccionarAmigo={handleSeleccionarAmigo}
                 actualizarSidebar={actualizarSidebar}
                 className={sidebarVisible ? "" : "oculto"}

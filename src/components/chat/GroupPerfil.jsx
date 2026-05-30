@@ -182,6 +182,30 @@ function GroupPerfil({ grupo, usuarioActualId, alSalirGrupo }){
     const handleFotoChange = (e) => {
         const file = e.target.files[0]
         if (!file) return
+
+        const TIPOS_IMAGEN_PERMITIDOS = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "image/avif"
+        ]
+        if (!TIPOS_IMAGEN_PERMITIDOS.includes(file.type)) {
+            toast.error(`Tipo de archivo no permitido. Solo se aceptan imágenes (JPG, PNG, GIF, WEBP, AVIF).`)
+            e.target.value = ""
+            return
+        }
+
+        const MAX_FILE_SIZE_MB = 5
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            const tamanioMB = (file.size / 1024 / 1024).toFixed(1)
+            toast.error(`La imagen pesa ${tamanioMB} MB. El máximo permitido es ${MAX_FILE_SIZE_MB} MB.`)
+            e.target.value = ""
+            return
+        }
+
         setFotoFile(file)
         setPreviewFoto(URL.createObjectURL(file))
     }
@@ -189,6 +213,30 @@ function GroupPerfil({ grupo, usuarioActualId, alSalirGrupo }){
     const handleBannerChange = (e) => {
         const file = e.target.files[0]
         if (!file) return
+
+        const TIPOS_IMAGEN_PERMITIDOS = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "image/avif"
+        ]
+        if (!TIPOS_IMAGEN_PERMITIDOS.includes(file.type)) {
+            toast.error(`Tipo de archivo no permitido. Solo se aceptan imágenes (JPG, PNG, GIF, WEBP, AVIF).`)
+            e.target.value = ""
+            return
+        }
+
+        const MAX_FILE_SIZE_MB = 5
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            const tamanioMB = (file.size / 1024 / 1024).toFixed(1)
+            toast.error(`El banner pesa ${tamanioMB} MB. El máximo permitido es ${MAX_FILE_SIZE_MB} MB.`)
+            e.target.value = ""
+            return
+        }
+
         setBannerFile(file)
         setPreviewBanner(URL.createObjectURL(file))
     }
@@ -257,7 +305,7 @@ function GroupPerfil({ grupo, usuarioActualId, alSalirGrupo }){
                             <input
                                 ref={bannerInputRef}
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
                                 style={{ display: "none" }}
                                 onChange={handleBannerChange}
                             />
@@ -282,7 +330,7 @@ function GroupPerfil({ grupo, usuarioActualId, alSalirGrupo }){
                             <input
                                 ref={fotoInputRef}
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
                                 style={{ display: "none" }}
                                 onChange={handleFotoChange}
                             />

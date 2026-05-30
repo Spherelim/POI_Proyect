@@ -1,10 +1,7 @@
 /* ══════════════════════════════════════════════
    Sidebar.css — Panel lateral de chats y grupos
    ══════════════════════════════════════════════ */
-@font-face {
-    font-family: "Mundial";
-    src: url("../assets/fonts/BowlbyOneSC-Regular.ttf");
-}
+
 
 /* ── Base ────────────────────────────────────── */
 .sidebar {
@@ -25,7 +22,6 @@
 
 /* ── Búsqueda ────────────────────────────────── */
 .search {
-    font-family: "Mundial", sans-serif;
     width: 100%;
     padding: 8px 14px;
     border-radius: 20px;

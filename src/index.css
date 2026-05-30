@@ -1,9 +1,18 @@
+@font-face {
+  font-family: "Mundial";
+  src: url("./assets/fonts/ConcertOne-Regular.ttf");
+}
+
+*, *::before, *::after, input, button, select, textarea {
+  font-family: "Mundial" !important;
+}
+
 /* ── Reset y variables globales ───────────────────────────── */
 :root {
   --sidebar-w: 280px;
   --info-panel-w: 300px;
   --header-h: 60px;
-  --font-main: 'Segoe UI', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-main: "Mundial";
 
   font-family: var(--font-main);
   line-height: 1.5;

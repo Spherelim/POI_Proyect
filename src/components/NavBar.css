@@ -1,15 +1,4 @@
-@font-face {
-    font-family: "Mundial";
-    src: url("../assets/fonts/BowlbyOneSC-Regular.ttf");
-}
-
-div {
-    font-family: "Mundial",sans-serif;
-}
-
-button {
-    font-family: "Mundial",sans-serif;
-}
+/* Estilos de barra de navegación */
 
 .navbar{
     display:flex;

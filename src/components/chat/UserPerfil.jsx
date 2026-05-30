@@ -1,6 +1,7 @@
 import "./UserPerfil.css"
 import Alert from "../Alert"
 import { useState, useEffect } from "react"
+import { toast } from "react-toastify"
 
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 import BannerDefault from "/src/assets/images/Banner 3.png"
@@ -140,45 +141,35 @@ function UserPerfil({ amigo, usuarioActualId }){
 
     const confirmarAccion = async () => {
         try{
-
             let res;
             
             if (alertAction === "eliminar de amigos") {
-                // Llamar a endpoint para eliminar amigo
                 res = await fetch(`${API_URL}/amistad/eliminar`, {
                     method: "DELETE",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ idUsuario: usuarioActualId, idAmigo: amigo.ID_Us })
                 })
-
-                if(res.ok){
-                    // Recargar sidebar
-                    window.dispatchEvent(new Event('storage'))
-                    window.location.reload()
-                }
-
             } else if (alertAction === "bloquear") {
-                // Llamar a endpoint para bloquear
                 res = await fetch(`${API_URL}/amistad/bloquear`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ idUsuario: usuarioActualId, idAmigo: amigo.ID_Us })
                 })
-
-                if(res.ok){
-                    // Recargar sidebar
-                    window.dispatchEvent(new Event('storage'))
-                    window.location.reload()
-                }
-
             }
+
+            if (res && res.ok) {
+                toast.success(`Acción realizada con éxito.`)
+            } else if (res) {
+                const data = await res.json()
+                toast.error(data.error || "Ocurrió un error al realizar la acción.")
+            }
+            
             setMostrarAlert(false)
             setAlertAction(null)
-            // Recargar sidebar
-            // window.dispatchEvent(new Event('storage'))
         }
         catch(error){
             console.error("Error en acción:", error)
+            toast.error("Error de conexión.")
             setMostrarAlert(false)
             setAlertAction(null)
         }

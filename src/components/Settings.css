@@ -7,7 +7,7 @@
 }
 
 @font-face {
-    font-family: "MundiFont";
+    font-family: "Mundial";
     src: url("../assets/fonts/ConcertOne-Regular.ttf");
 }
 
@@ -21,7 +21,7 @@
 .SettingsContainer span,
 .SettingsContainer p,
 .SettingsContainer div {
-    font-family: "MundiFont", sans-serif !important;
+    font-family: "Mundial" !important;
     text-shadow: none !important;
 }
 

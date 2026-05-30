@@ -325,6 +325,8 @@ app.post("/solicitud/enviar", (req, res) => {
         if (err) return res.status(500).json({ error: "Error al enviar solicitud" })
         res.json({ message: "Solicitud enviada" })
         
+        io.to(`user_${idReceptor}`).emit("solicitud_recibida", { idEmisor })
+        
         // Llamar al endpoint de tareas sin await, en segundo plano
         const port = process.env.PORT || 3000
         fetch(`http://localhost:${port}/tareas/progreso`, {
@@ -391,6 +393,9 @@ app.put("/solicitud/responder", (req, res) => {
                 return res.status(500).json({ error: "Error al responder solicitud" })
             }
             res.json({ message: `Solicitud ${accion}` })
+            
+            io.to(`user_${idEmisor}`).emit("amistad_actualizada", { idAmigo: idReceptor, accion })
+            io.to(`user_${idReceptor}`).emit("amistad_actualizada", { idAmigo: idEmisor, accion })
             
             const port = process.env.PORT || 3000
             
@@ -500,6 +505,9 @@ app.delete("/amistad/eliminar", (req, res) => {
     db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err) => {
         if (err) return res.status(500).json({ error: "Error" })
         res.json({ message: "Amigo eliminado" })
+
+        io.to(`user_${idUsuario}`).emit("amistad_actualizada", { idAmigo: idAmigo, accion: "eliminado" })
+        io.to(`user_${idAmigo}`).emit("amistad_actualizada", { idAmigo: idUsuario, accion: "eliminado" })
     })
 })
 
@@ -515,6 +523,9 @@ app.put("/amistad/bloquear", (req, res) => {
     db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err) => {
         if (err) return res.status(500).json({ error: "Error" })
         res.json({ message: "Usuario bloqueado" })
+
+        io.to(`user_${idUsuario}`).emit("amistad_actualizada", { idAmigo: idAmigo, accion: "bloqueado" })
+        io.to(`user_${idAmigo}`).emit("amistad_actualizada", { idAmigo: idUsuario, accion: "bloqueado" })
     })
 })
 
@@ -534,6 +545,9 @@ app.put("/amistad/desbloquear", (req, res) => {
         }
         
         res.json({ message: "Usuario desbloqueado correctamente" })
+
+        io.to(`user_${idUsuario}`).emit("amistad_actualizada", { idAmigo: idAmigo, accion: "desbloqueado" })
+        io.to(`user_${idAmigo}`).emit("amistad_actualizada", { idAmigo: idUsuario, accion: "desbloqueado" })
     })
 })
 
@@ -747,6 +761,12 @@ app.put("/grupos/editar/:idConversacion", upload.fields([
             db.query("SELECT ID_Conversacion, nombreGrupo, fotoGrupo, fotoBanner, idCreador FROM conversacion WHERE ID_Conversacion = ?", [idConversacion], (err, grupos) => {
                 if (err) return res.status(500).json({ error: "Error al obtener grupo actualizado." });
                 res.json({ message: "Grupo actualizado correctamente.", grupo: grupos[0] });
+
+                io.to(`grupo_${idConversacion}`).emit("grupo_actualizado", {
+                    idConversacion,
+                    tipo: "grupo_editado",
+                    grupo: grupos[0]
+                });
             });
         });
     });
@@ -1024,6 +1044,8 @@ app.post('/upload/foto/:id', upload.single('foto'), (req, res) => {
             return res.status(500).json({ error: 'Error al guardar foto' })
         }
         res.json({ fotoUrl })
+        
+        io.emit("usuario_actualizado", { idUsuario: id })
 
         // Llamar al endpoint de tareas sin await, en segundo plano
         const port = process.env.PORT || 3000
@@ -1056,6 +1078,8 @@ app.post('/upload/banner/:id', upload.single('banner'), (req, res) => {
             return res.status(500).json({ error: 'Error al guardar banner' })
         }
         res.json({ bannerUrl })
+        
+        io.emit("usuario_actualizado", { idUsuario: id })
         
         // Llamar al endpoint de tareas sin await, en segundo plano
         const port = process.env.PORT || 3000
@@ -1130,6 +1154,8 @@ app.put("/usuarios/actualizar/:id", (req, res) => {
                         nombreCompleto: nombreCompleto
                     }
                 })
+
+                io.emit("usuario_actualizado", { idUsuario: id })
             })
         })
     })

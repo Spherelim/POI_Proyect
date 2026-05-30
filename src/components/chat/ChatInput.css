@@ -1,10 +1,7 @@
 /* ══════════════════════════════════════════════
    ChatInput.css — Barra de escritura de mensajes
    ══════════════════════════════════════════════ */
-@font-face {
-    font-family: "Mundial";
-    src: url("../assets/fonts/BowlbyOneSC-Regular.ttf");
-}
+
 
 /* Wrapper que agrupa el preview + la barra */
 .chat-input-wrapper {
@@ -53,7 +50,6 @@
 
 /* ── Input de texto ──────────────────────────── */
 .chat-text-input {
-    font-family: "Mundial", sans-serif;
     flex: 1;
     min-width: 0;
     padding: 10px 16px;
@@ -231,7 +227,6 @@
 .encriptacion-label-text {
     font-size: 11px;
     color: rgba(255, 255, 255, 0.5);
-    font-family: "Mundial", sans-serif;
     transition: color 0.3s;
 }
 

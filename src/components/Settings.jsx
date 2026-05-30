@@ -188,6 +188,7 @@ function Settings() {
         const primerError = Object.values(err).find(e => e !== null)
         if (primerError) {
             setMessage({ text: primerError, type: "error" })
+            toast.error(primerError)
             return
         }
 
@@ -219,6 +220,7 @@ function Settings() {
             const data = await res.json()
             if (res.ok) {
                 setMessage({ text: "¡Datos actualizados correctamente!", type: "success" })
+                toast.success("¡Datos actualizados correctamente!")
                 const usuarioActualizado = {
                     ...usuarioActual,
                     nombreUsuario: userData.nombreUsuario.trim(),
@@ -228,10 +230,12 @@ function Settings() {
                 setTimeout(() => setMessage({ text: "", type: "" }), 3000)
             } else {
                 setMessage({ text: data.error || "Error al actualizar", type: "error" })
+                toast.error(data.error || "Error al actualizar")
             }
         } catch (error) {
             console.error("Error:", error)
             setMessage({ text: "Error de conexión", type: "error" })
+            toast.error("Error de conexión al actualizar los datos.")
         } finally {
             setSaving(false)
         }

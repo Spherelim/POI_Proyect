@@ -2,7 +2,7 @@
    Login.css — Mejorado visual sin cambiar estructura
    ══════════════════════════════════════════════ */
 @font-face {
-    font-family: "MundiFont";
+    font-family: "Mundial";
     src: url("../assets/fonts/ConcertOne-Regular.ttf");
 }
 
@@ -80,7 +80,7 @@
 
 /* ── Título ──────────────────────────────────── */
 .Content h2 {
-    font-family: "MundiFont", sans-serif;
+    font-family: "Mundial";
     margin: 0 0 28px;
     font-size: clamp(38px, 9vw, 58px);
     line-height: 1;
