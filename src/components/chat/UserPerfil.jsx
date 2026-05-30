@@ -18,7 +18,7 @@ import SilenciarIconFilled from "/src/assets/icons/Notificación/corte-de-campan
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function UserPerfil({ amigo, usuarioActualId }){
+function UserPerfil({ amigo, usuarioActualId, personalizacion }) {
     const [AlertData, setMostrarAlert] = useState(false)
     const [alertMessage, setAlertMessage] = useState("")
     const [alertAction, setAlertAction] = useState(null)
@@ -36,6 +36,12 @@ function UserPerfil({ amigo, usuarioActualId }){
     const [esFavorito, setEsFavorito] = useState(false)
     const [estaSilenciado, setEstaSilenciado] = useState(false)
     const [cargandoEstado, setCargandoEstado] = useState(true)
+
+    // Agregacion
+    const marco = personalizacion?.marco
+    const borderStyleMarco = marco 
+        ? `3px solid transparent; background: linear-gradient(white, white) padding-box, linear-gradient(135deg, ${marco.Color_1}, ${marco.Color_2}) border-box;`
+        : '3px solid white'
 
     useEffect(() => {
         if (amigo && amigo.ID_Us) {
@@ -182,22 +188,8 @@ function UserPerfil({ amigo, usuarioActualId }){
     return(
         <>
             <div className="Perfil-User">
-                <img 
-                    className="banner" 
-                    src={userData.banner} 
-                    alt="Banner" 
-                    onError={(e) => {
-                        e.target.src = BannerDefault
-                    }}
-                />
-                <img 
-                    className="avatar" 
-                    src={userData.foto} 
-                    alt="Foto Perfil"
-                    onError={(e) => {
-                        e.target.src = FotoDefault
-                    }}
-                />
+                <img className="banner" src={userData.banner} style={{ borderTop: borderStyleMarco, borderBottom: borderStyleMarco }} onError={(e) => e.target.src = BannerDefault} />
+                <img className="avatar" src={userData.foto} style={{ border: borderStyleMarco }} onError={(e) => e.target.src = FotoDefault} />
 
                 <div className="acciones">
                     <div className="accionesUno">

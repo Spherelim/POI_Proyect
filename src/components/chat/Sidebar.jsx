@@ -188,6 +188,7 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                             ultmsg={amigo.unread_count > 0 ? `${amigo.unread_count} mensajes nuevos` : "Toca para chatear"}
                             time={formatearHora(amigo.last_msg_date)}
                             esFavorito={amigo.esFavorito}
+                            idAmigo={amigo.ID_Us}
                             abrirChat={() => handleSeleccionarAmigo(amigo)}
                             unreadCount={amigo.unread_count || 0}
                             activo={amigoActivo && !amigoActivo.esGrupo && amigoActivo.ID_Us === amigo.ID_Us}
