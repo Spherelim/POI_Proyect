@@ -1579,6 +1579,73 @@ app.post("/mensajes/grupo/archivo", uploadMensaje.single("archivo"), async (req,
     insertarMensaje(idConversacion, idEmisor, req.file.originalname, res, tipo, urlArchivo)
 })
 
+// Obtener todos los ítems disponibles
+app.get("/items", (req, res) => {
+    const sql = "SELECT * FROM item ORDER BY Precio ASC"
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener ítems" })
+        res.json(result)
+    })
+})
+
+// Comprar un ítem (canjear puntos)
+app.post("/comprar", (req, res) => {
+    const { idUsuario, idItem } = req.body
+
+    // Verificar puntos suficientes y existencia del ítem
+    const sqlCheck = `
+        SELECT u.Puntos, i.Precio
+        FROM usuario u, item i
+        WHERE u.ID_Us = ? AND i.ID_Item = ?
+    `
+    db.query(sqlCheck, [idUsuario, idItem], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error en la compra" })
+        if (result.length === 0) return res.status(404).json({ error: "Ítem no encontrado" })
+
+        const { Puntos, Precio } = result[0]
+        if (Puntos < Precio) {
+            return res.status(400).json({ error: "Puntos insuficientes" })
+        }
+
+        // Restar puntos y agregar al inventario del usuario
+        const sqlCompra = `
+            START TRANSACTION;
+            UPDATE usuario SET Puntos = Puntos - ? WHERE ID_Us = ?;
+            INSERT INTO usuario_item (id_usuario, id_item) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE equipado = equipado;
+            COMMIT;
+        `
+        // MySQL no permite múltiples sentencias en una sola llamada directamente,
+        // lo hacemos en dos pasos con promesa o callbacks anidados.
+        db.query("UPDATE usuario SET Puntos = Puntos - ? WHERE ID_Us = ?", [Precio, idUsuario], (errUpdate) => {
+            if (errUpdate) return res.status(500).json({ error: "Error al actualizar puntos" })
+            db.query("INSERT INTO usuario_item (id_usuario, id_item) VALUES (?, ?) ON DUPLICATE KEY UPDATE equipado = equipado", [idUsuario, idItem], (errInsert) => {
+                if (errInsert) {
+                    // revertir puntos si falla la inserción
+                    db.query("UPDATE usuario SET Puntos = Puntos + ? WHERE ID_Us = ?", [Precio, idUsuario])
+                    return res.status(500).json({ error: "Error al agregar al inventario" })
+                }
+                res.json({ message: "Compra exitosa" })
+            })
+        })
+    })
+})
+
+// Obtener inventario del usuario (opcional, para saber qué tiene)
+app.get("/inventario/:idUsuario", (req, res) => {
+    const { idUsuario } = req.params
+    const sql = `
+        SELECT i.*, ui.Equipado
+        FROM usuario_item ui
+        INNER JOIN item i ON ui.id_item = i.ID_Item
+        WHERE ui.id_usuario = ?
+    `
+    db.query(sql, [idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener inventario" })
+        res.json(result)
+    })
+})
+
 
 // Servir archivos estáticos de uploads
 app.use('/uploads', express.static(uploadDir))
@@ -1801,7 +1868,6 @@ io.on("connection", (socket) => {
 
     socket.on("webrtc-reject", (data) => {
         console.log(`[WebRTC Server] Rechazo de llamada de: ${usuarioIdActual} para: ${data.to}`);
-        
         // El usuarioIdActual es quien rechaza la llamada, data.to es quien la originó (el que recibirá la notificación)
         insertarNotificacion(data.to, usuarioIdActual, "llamada", "Ha rechazado tu llamada");
         
@@ -1810,6 +1876,7 @@ io.on("connection", (socket) => {
             from: usuarioIdActual
         });
     });
+
 
     socket.on("webrtc-busy", (data) => {
         console.log(`[WebRTC Server] Destinatario ocupado: ${usuarioIdActual} para: ${data.to}`)
