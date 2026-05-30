@@ -6,6 +6,9 @@
     background: linear-gradient(90deg, #394460 54%, #768CC6 100%);
     color:white;
     border-bottom: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
 }
 
 .user-info{

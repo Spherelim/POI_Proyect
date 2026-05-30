@@ -499,13 +499,34 @@ app.put("/amistad/desbloquear", (req, res) => {
     })
 })
 
+// Obtener mensajes de un grupo (debe definirse antes del endpoint de mensajes individuales para evitar conflictos de rutas)
+app.get("/mensajes/grupo/:idConversacion", (req, res) => {
+    const { idConversacion } = req.params;
+    const sql = `
+        SELECT m.ID_Mensaje, m.mensaje, m.fechaCreacion, m.id_remitente, u.NombreUsuario
+        FROM mensaje m
+        INNER JOIN usuario u ON m.id_remitente = u.ID_Us
+        WHERE m.id_conversacion = ?
+        ORDER BY m.fechaCreacion ASC
+    `;
+    db.query(sql, [idConversacion], (err, result) => {
+        if (err) {
+            console.error("Error al obtener mensajes de grupo:", err);
+            return res.status(500).json({ error: "Error al obtener mensajes de grupo." });
+        }
+        res.json(result);
+    });
+});
+
 app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
-    const { idUsuario, idAmigo } = req.params
+    const { idUsuario, idAmigo } = req.params;
     const sql = `
         SELECT m.ID_Mensaje, m.mensaje, m.fechaCreacion, m.id_remitente
         FROM mensaje m
+        INNER JOIN conversacion c ON m.id_conversacion = c.ID_Conversacion
         INNER JOIN conversacion_usuario cu1 ON cu1.id_conversacion = m.id_conversacion AND cu1.id_usuario = ?
         INNER JOIN conversacion_usuario cu2 ON cu2.id_conversacion = m.id_conversacion AND cu2.id_usuario = ?
+        WHERE (c.esGrupo IS NULL OR c.esGrupo = 0)
         ORDER BY m.fechaCreacion ASC
     `
     db.query(sql, [idUsuario, idAmigo], (err, result) => {
@@ -519,7 +540,8 @@ app.post("/mensajes/enviar", (req, res) => {
     const sqlBuscar = `
         SELECT cu1.id_conversacion FROM conversacion_usuario cu1
         INNER JOIN conversacion_usuario cu2 ON cu1.id_conversacion = cu2.id_conversacion
-        WHERE cu1.id_usuario = ? AND cu2.id_usuario = ?
+        INNER JOIN conversacion c ON cu1.id_conversacion = c.ID_Conversacion
+        WHERE cu1.id_usuario = ? AND cu2.id_usuario = ? AND (c.esGrupo IS NULL OR c.esGrupo = 0)
         LIMIT 1
     `
     db.query(sqlBuscar, [idEmisor, idReceptor], (err, result) => {
@@ -527,7 +549,7 @@ app.post("/mensajes/enviar", (req, res) => {
         if (result.length > 0) {
             insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res)
         } else {
-            db.query("INSERT INTO conversacion () VALUES ()", (err, r) => {
+            db.query("INSERT INTO conversacion (esGrupo) VALUES (0)", (err, r) => {
                 if (err) return res.status(500).json({ error: "Error al crear conversación" })
                 const idCon = r.insertId
                 db.query(
@@ -553,6 +575,317 @@ app.post("/mensajes/enviar", (req, res) => {
         })
     }).catch(err => console.error("Error actualizando tarea:", err))
 })
+
+// --- ENDPOINTS DE GRUPOS ---
+
+// Crear un grupo
+app.post("/grupos/crear", (req, res) => {
+    const { nombreGrupo, idCreador, participantes } = req.body; // participantes es un array de IDs [id1, id2, ...]
+
+    // Validación: Creador + Participantes debe ser al menos 3 personas
+    const totalMiembros = (participantes ? participantes.length : 0) + 1;
+    if (totalMiembros < 3) {
+        return res.status(400).json({ error: "Un grupo debe tener al menos 3 integrantes." });
+    }
+
+    // 1. Crear la conversación de tipo grupo
+    const sqlConversacion = "INSERT INTO conversacion (esGrupo, nombreGrupo, idCreador) VALUES (1, ?, ?)";
+    db.query(sqlConversacion, [nombreGrupo, idCreador], (err, r) => {
+        if (err) {
+            console.error("Error al crear conversación de grupo:", err);
+            return res.status(500).json({ error: "Error al crear el grupo." });
+        }
+        
+        const idCon = r.insertId;
+
+        // 2. Preparar los inserts para conversacion_usuario
+        // El creador es 'admin', los demás son 'miembro'
+        const values = [[idCon, idCreador, 'admin']];
+        participantes.forEach(idPart => {
+            values.push([idCon, idPart, 'miembro']);
+        });
+
+        const sqlMiembros = "INSERT INTO conversacion_usuario (id_conversacion, id_usuario, rol) VALUES ?";
+        db.query(sqlMiembros, [values], (err) => {
+            if (err) {
+                console.error("Error al insertar miembros del grupo:", err);
+                return res.status(500).json({ error: "Error al registrar miembros del grupo." });
+            }
+            res.json({ message: "Grupo creado con éxito.", idConversacion: idCon });
+        });
+    });
+});
+
+// Editar información de un grupo (nombre, foto, banner) — Solo admins/creador
+app.put("/grupos/editar/:idConversacion", upload.fields([
+    { name: "fotoGrupo", maxCount: 1 },
+    { name: "fotoBanner", maxCount: 1 }
+]), (req, res) => {
+    const { idConversacion } = req.params;
+    const { idEjecutor, nombreGrupo } = req.body;
+
+    // Verificar que el ejecutor es admin o creador
+    const sqlCheck = `
+        SELECT cu.rol, c.idCreador
+        FROM conversacion_usuario cu
+        INNER JOIN conversacion c ON c.ID_Conversacion = cu.id_conversacion
+        WHERE cu.id_conversacion = ? AND cu.id_usuario = ?
+    `;
+    db.query(sqlCheck, [idConversacion, idEjecutor], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error de servidor" });
+        if (result.length === 0) return res.status(403).json({ error: "No eres miembro de este grupo." });
+
+        const row = result[0];
+        const esCreador = parseInt(idEjecutor) === row.idCreador;
+        const esAdmin = row.rol === 'admin';
+
+        if (!esCreador && !esAdmin) {
+            return res.status(403).json({ error: "Solo los administradores pueden editar la información del grupo." });
+        }
+
+        // Construir los campos a actualizar dinámicamente
+        const campos = [];
+        const valores = [];
+
+        if (nombreGrupo && nombreGrupo.trim()) {
+            campos.push("nombreGrupo = ?");
+            valores.push(nombreGrupo.trim());
+        }
+
+        if (req.files && req.files["fotoGrupo"]) {
+            campos.push("fotoGrupo = ?");
+            valores.push("/uploads/" + req.files["fotoGrupo"][0].filename);
+        }
+
+        if (req.files && req.files["fotoBanner"]) {
+            campos.push("fotoBanner = ?");
+            valores.push("/uploads/" + req.files["fotoBanner"][0].filename);
+        }
+
+        if (campos.length === 0) {
+            return res.status(400).json({ error: "No hay nada que actualizar." });
+        }
+
+        valores.push(idConversacion);
+        const sqlUpdate = `UPDATE conversacion SET ${campos.join(", ")} WHERE ID_Conversacion = ?`;
+        db.query(sqlUpdate, valores, (err) => {
+            if (err) {
+                console.error("Error al editar grupo:", err);
+                return res.status(500).json({ error: "Error al actualizar el grupo." });
+            }
+
+            // Devolver la info actualizada del grupo
+            db.query("SELECT ID_Conversacion, nombreGrupo, fotoGrupo, fotoBanner, idCreador FROM conversacion WHERE ID_Conversacion = ?", [idConversacion], (err, grupos) => {
+                if (err) return res.status(500).json({ error: "Error al obtener grupo actualizado." });
+                res.json({ message: "Grupo actualizado correctamente.", grupo: grupos[0] });
+            });
+        });
+    });
+});
+
+// Obtener los grupos de un usuario
+app.get("/grupos/:idUsuario", (req, res) => {
+    const { idUsuario } = req.params;
+    const sql = `
+        SELECT c.ID_Conversacion, c.nombreGrupo, c.fotoGrupo, c.idCreador, cu.rol
+        FROM conversacion c
+        INNER JOIN conversacion_usuario cu ON c.ID_Conversacion = cu.id_conversacion
+        WHERE cu.id_usuario = ? AND c.esGrupo = 1
+    `;
+    db.query(sql, [idUsuario], (err, result) => {
+        if (err) {
+            console.error("Error al obtener grupos:", err);
+            return res.status(500).json({ error: "Error al obtener grupos." });
+        }
+        res.json(result);
+    });
+});
+
+// Obtener detalles e integrantes de un grupo
+app.get("/grupos/detalles/:idConversacion", (req, res) => {
+    const { idConversacion } = req.params;
+    
+    // Obtener info del grupo
+    const sqlGrupo = "SELECT ID_Conversacion, nombreGrupo, fotoGrupo, fotoBanner, idCreador, esGrupo FROM conversacion WHERE ID_Conversacion = ? AND esGrupo = 1";
+    db.query(sqlGrupo, [idConversacion], (err, grupos) => {
+        if (err) return res.status(500).json({ error: "Error al obtener detalles" });
+        if (grupos.length === 0) return res.status(404).json({ error: "Grupo no encontrado" });
+        
+        const grupo = grupos[0];
+
+        // Obtener integrantes
+        const sqlMiembros = `
+            SELECT u.ID_Us, u.NombreUsuario, u.Foto, cu.rol
+            FROM conversacion_usuario cu
+            INNER JOIN usuario u ON cu.id_usuario = u.ID_Us
+            WHERE cu.id_conversacion = ?
+        `;
+        db.query(sqlMiembros, [idConversacion], (err, miembros) => {
+            if (err) return res.status(500).json({ error: "Error al obtener miembros" });
+            res.json({ grupo, miembros });
+        });
+    });
+});
+
+// Agregar miembro al grupo
+app.post("/grupos/miembros/agregar", (req, res) => {
+    const { idConversacion, idEjecutor, idNuevoMiembro } = req.body;
+
+    // Verificar si el ejecutor es admin o creador en el grupo
+    const sqlCheck = "SELECT rol FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario = ?";
+    db.query(sqlCheck, [idConversacion, idEjecutor], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error de servidor" });
+        if (result.length === 0 || result[0].rol !== 'admin') {
+            // Verificar si es el creador directo (por si acaso no tiene el rol de admin por alguna razón)
+            const sqlCheckCreador = "SELECT idCreador FROM conversacion WHERE ID_Conversacion = ?";
+            return db.query(sqlCheckCreador, [idConversacion], (err, resC) => {
+                if (err) return res.status(500).json({ error: "Error" });
+                if (resC.length === 0 || resC[0].idCreador !== parseInt(idEjecutor)) {
+                    return res.status(403).json({ error: "No tienes permisos para agregar miembros (debes ser administrador)." });
+                }
+                procederAgregar();
+            });
+        }
+        procederAgregar();
+
+        function procederAgregar() {
+            // Insertar al nuevo miembro
+            const sqlAdd = "INSERT INTO conversacion_usuario (id_conversacion, id_usuario, rol) VALUES (?, ?, 'miembro') ON DUPLICATE KEY UPDATE rol = 'miembro'";
+            db.query(sqlAdd, [idConversacion, idNuevoMiembro], (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ error: "Error al agregar miembro." });
+                }
+                res.json({ message: "Miembro agregado correctamente." });
+            });
+        }
+    });
+});
+
+// Eliminar miembro del grupo
+app.post("/grupos/miembros/eliminar", (req, res) => {
+    const { idConversacion, idEjecutor, idMiembroEliminar } = req.body;
+
+    // Obtener detalles del creador del grupo
+    db.query("SELECT idCreador FROM conversacion WHERE ID_Conversacion = ?", [idConversacion], (err, resultG) => {
+        if (err) return res.status(500).json({ error: "Error de servidor" });
+        if (resultG.length === 0) return res.status(404).json({ error: "Grupo no encontrado" });
+
+        const creadorId = resultG[0].idCreador;
+
+        // No se puede eliminar al creador principal
+        if (parseInt(idMiembroEliminar) === creadorId) {
+            return res.status(400).json({ error: "No se puede eliminar al creador principal del grupo." });
+        }
+
+        // Obtener rol del ejecutor y del miembro a eliminar
+        const sqlRoles = "SELECT id_usuario, rol FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario IN (?, ?)";
+        db.query(sqlRoles, [idConversacion, idEjecutor, idMiembroEliminar], (err, resultR) => {
+            if (err) return res.status(500).json({ error: "Error" });
+            
+            const ejecutorRow = resultR.find(r => r.id_usuario === parseInt(idEjecutor));
+            const eliminarRow = resultR.find(r => r.id_usuario === parseInt(idMiembroEliminar));
+
+            if (!ejecutorRow) {
+                return res.status(403).json({ error: "No perteneces a este grupo." });
+            }
+            if (!eliminarRow) {
+                return res.status(404).json({ error: "El miembro a eliminar no pertenece a este grupo." });
+            }
+
+            const esCreador = parseInt(idEjecutor) === creadorId;
+            const ejecutorEsAdmin = ejecutorRow.rol === 'admin' || esCreador;
+            const eliminarEsAdmin = eliminarRow.rol === 'admin';
+
+            if (!ejecutorEsAdmin) {
+                return res.status(403).json({ error: "No tienes permisos de administrador para eliminar miembros." });
+            }
+
+            // Si el ejecutor es admin pero NO es el creador, y el miembro a eliminar también es admin: no puede eliminarlo
+            if (!esCreador && eliminarEsAdmin) {
+                return res.status(403).json({ error: "Un administrador no puede eliminar a otro administrador. Solo el creador principal puede hacerlo." });
+            }
+
+            // Proceder a eliminar
+            const sqlDelete = "DELETE FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario = ?";
+            db.query(sqlDelete, [idConversacion, idMiembroEliminar], (err) => {
+                if (err) return res.status(500).json({ error: "Error al eliminar miembro." });
+                res.json({ message: "Miembro eliminado del grupo correctamente." });
+            });
+        });
+    });
+});
+
+// Cambiar rol de un miembro (Promover a Admin / Quitar Admin)
+app.post("/grupos/roles/cambiar", (req, res) => {
+    const { idConversacion, idEjecutor, idMiembro, nuevoRol } = req.body; // nuevoRol es 'admin' o 'miembro'
+
+    if (nuevoRol !== 'admin' && nuevoRol !== 'miembro') {
+        return res.status(400).json({ error: "Rol no válido." });
+    }
+
+    // Solo el creador principal puede cambiar roles
+    db.query("SELECT idCreador FROM conversacion WHERE ID_Conversacion = ?", [idConversacion], (err, resultG) => {
+        if (err) return res.status(500).json({ error: "Error" });
+        if (resultG.length === 0) return res.status(404).json({ error: "Grupo no encontrado" });
+
+        const creadorId = resultG[0].idCreador;
+
+        if (parseInt(idEjecutor) !== creadorId) {
+            return res.status(403).json({ error: "Solo el creador principal del grupo puede cambiar los roles de los miembros." });
+        }
+
+        if (parseInt(idMiembro) === creadorId) {
+            return res.status(400).json({ error: "No se puede cambiar el rol del creador principal." });
+        }
+
+        const sqlUpdate = "UPDATE conversacion_usuario SET rol = ? WHERE id_conversacion = ? AND id_usuario = ?";
+        db.query(sqlUpdate, [nuevoRol, idConversacion, idMiembro], (err) => {
+            if (err) return res.status(500).json({ error: "Error al actualizar rol." });
+            res.json({ message: `Rol actualizado a ${nuevoRol} correctamente.` });
+        });
+    });
+});
+
+// Salirse del grupo
+app.post("/grupos/salir", (req, res) => {
+    const { idConversacion, idUsuario } = req.body;
+
+    // Verificar si es el creador principal
+    db.query("SELECT idCreador FROM conversacion WHERE ID_Conversacion = ?", [idConversacion], (err, resultG) => {
+        if (err) return res.status(500).json({ error: "Error" });
+        if (resultG.length === 0) return res.status(404).json({ error: "Grupo no encontrado" });
+
+        const creadorId = resultG[0].idCreador;
+
+        if (parseInt(idUsuario) === creadorId) {
+            return res.status(400).json({ error: "El creador principal no puede salirse del grupo directamente. Si quieres salir, debes transferir la propiedad del grupo o eliminarlo." });
+        }
+
+        const sqlDelete = "DELETE FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario = ?";
+        db.query(sqlDelete, [idConversacion, idUsuario], (err) => {
+            if (err) return res.status(500).json({ error: "Error al salir del grupo." });
+            res.json({ message: "Has salido del grupo correctamente." });
+        });
+    });
+});
+
+
+// Enviar un mensaje al grupo
+app.post("/mensajes/grupo/enviar", (req, res) => {
+    const { idConversacion, idEmisor, contenido } = req.body;
+    
+    // Validar que pertenezca al grupo antes de enviar
+    const sqlCheck = "SELECT 1 FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario = ?";
+    db.query(sqlCheck, [idConversacion, idEmisor], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error de servidor" });
+        if (result.length === 0) {
+            return res.status(403).json({ error: "No eres miembro de este grupo." });
+        }
+        
+        insertarMensaje(idConversacion, idEmisor, contenido, res);
+    });
+});
 
 app.get("/usuarios/:id/puntos", (req, res) => {
     const { id } = req.params
@@ -896,6 +1229,22 @@ io.on("connection", (socket) => {
 
     socket.on("mensaje", (data) => {
         io.to(`user_${data.idReceptor}`).emit("mensaje", data)
+    })
+
+    // Eventos de Sockets para Grupos
+    socket.on("join_group", (idConversacion) => {
+        socket.join(`grupo_${idConversacion}`)
+        console.log(`Socket ${socket.id} se unio al grupo_${idConversacion}`)
+    })
+
+    socket.on("leave_group", (idConversacion) => {
+        socket.leave(`grupo_${idConversacion}`)
+        console.log(`Socket ${socket.id} salio del grupo_${idConversacion}`)
+    })
+
+    socket.on("mensaje_grupo", (data) => {
+        // Retransmitir mensaje a todos los demas en la sala del grupo
+        socket.to(`grupo_${data.idConversacion}`).emit("mensaje_grupo", data)
     })
 
     socket.on("call-user", ({to, offer}) => {
