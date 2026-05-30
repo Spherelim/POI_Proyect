@@ -2,9 +2,16 @@ import "./Settings.css"
 import { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import Alert from "./Alert"
+import {
+    validarNombreUsuario,
+    validarNombreCompleto,
+    validarCorreo,
+    validarFechaNacimiento
+} from "../utils/validaciones"
 
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 import BannerDefault from "/src/assets/images/Banner 3.png"
+import { toast } from "react-toastify"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
@@ -21,12 +28,13 @@ function Settings() {
         banner: "",
         descripcion: ""
     })
+    const [errores, setErrores] = useState({})
     const [fotoPreview, setFotoPreview] = useState("")
     const [bannerPreview, setBannerPreview] = useState("")
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState({ text: "", type: "" })
-    
+
     const fotoInputRef = useRef(null)
     const bannerInputRef = useRef(null)
 
@@ -38,9 +46,6 @@ function Settings() {
         try {
             const res = await fetch(`${API_URL}/usuarios/detalles/${usuarioActual.id}`)
             const data = await res.json()
-            
-            console.log("Datos cargados:", data)
-            
             setUserData({
                 nombreUsuario: data.NombreUsuario || "",
                 nombreCompleto: data.NombreCompleto || "",
@@ -50,7 +55,6 @@ function Settings() {
                 banner: data.Banner || "",
                 descripcion: data.Descripcion || ""
             })
-            
             setFotoPreview(data.Foto ? `${API_URL}${data.Foto}` : FotoDefault)
             setBannerPreview(data.Banner ? `${API_URL}${data.Banner}` : BannerDefault)
             setLoading(false)
@@ -61,7 +65,46 @@ function Settings() {
         }
     }
 
-    // Función para comprimir imagen
+    // Validar un campo individual en tiempo real
+    const validarCampo = (campo, valor) => {
+        let error = null
+        if (campo === "nombreUsuario") error = validarNombreUsuario(valor)
+        if (campo === "nombreCompleto") error = validarNombreCompleto(valor)
+        if (campo === "correo") error = validarCorreo(valor)
+        if (campo === "fechaNac") error = validarFechaNacimiento(valor)
+        setErrores(prev => ({ ...prev, [campo]: error }))
+    }
+
+    const handleChange = (campo, valor) => {
+        setUserData(prev => ({ ...prev, [campo]: valor }))
+        validarCampo(campo, valor)
+    }
+
+    // Validar archivo de imagen — tipo y tamaño permitido
+    const TIPOS_IMAGEN_PERMITIDOS = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/avif"
+    ]
+    const MAX_FILE_SIZE_MB = 5
+    const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
+    const validarArchivoImagen = (file) => {
+        if (!file) return "No se seleccionó ningún archivo."
+        if (!TIPOS_IMAGEN_PERMITIDOS.includes(file.type)) {
+            return `Tipo de archivo no permitido (${file.type || "desconocido"}). Solo se aceptan: JPG, PNG, GIF, WEBP, AVIF.`
+        }
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            const tamanioMB = (file.size / 1024 / 1024).toFixed(1)
+            return `El archivo pesa ${tamanioMB} MB. El máximo permitido es ${MAX_FILE_SIZE_MB} MB.`
+        }
+        return null
+    }
+
+    // Comprimir imagen antes de subir
     const comprimirImagen = (file, calidad = 0.7, maxWidth = 800) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader()
@@ -73,19 +116,15 @@ function Settings() {
                     const canvas = document.createElement('canvas')
                     let width = img.width
                     let height = img.height
-                    
                     if (width > maxWidth) {
                         height = (height * maxWidth) / width
                         width = maxWidth
                     }
-                    
                     canvas.width = width
                     canvas.height = height
                     const ctx = canvas.getContext('2d')
                     ctx.drawImage(img, 0, 0, width, height)
-                    
-                    const dataUrl = canvas.toDataURL('image/jpeg', calidad)
-                    resolve(dataUrl)
+                    resolve(canvas.toDataURL('image/jpeg', calidad))
                 }
                 img.onerror = reject
             }
@@ -93,85 +132,99 @@ function Settings() {
         })
     }
 
-    // Actualiza handleFotoChange
     const handleFotoChange = async (e) => {
         const file = e.target.files[0]
-        if (file && file.type.startsWith('image/')) {
-            try {
-                const imagenComprimida = await comprimirImagen(file, 0.7, 500)
-                setFotoPreview(imagenComprimida)
-                setUserData({ ...userData, foto: imagenComprimida })
-            } catch (error) {
-                console.error("Error comprimiendo imagen:", error)
-            }
+        const errorArchivo = validarArchivoImagen(file)
+        if (errorArchivo) {
+            toast.error(errorArchivo)
+            setMessage({ text: errorArchivo, type: "error" })
+            e.target.value = "" // Limpiar el input
+            return
+        }
+        try {
+            const imagenComprimida = await comprimirImagen(file, 0.7, 500)
+            setFotoPreview(imagenComprimida)
+            setUserData(prev => ({ ...prev, foto: imagenComprimida }))
+        } catch (error) {
+            console.error("Error comprimiendo imagen:", error)
+            toast.error("Error al procesar la imagen de perfil.")
+            setMessage({ text: "Error al procesar la imagen.", type: "error" })
         }
     }
 
-    // Actualiza handleBannerChange
     const handleBannerChange = async (e) => {
         const file = e.target.files[0]
-        if (file && file.type.startsWith('image/')) {
-            try {
-                const imagenComprimida = await comprimirImagen(file, 0.7, 1200)
-                setBannerPreview(imagenComprimida)
-                setUserData({ ...userData, banner: imagenComprimida })
-            } catch (error) {
-                console.error("Error comprimiendo imagen:", error)
-            }
+        const errorArchivo = validarArchivoImagen(file)
+        if (errorArchivo) {
+            toast.error(errorArchivo)
+            setMessage({ text: errorArchivo, type: "error" })
+            e.target.value = "" // Limpiar el input
+            return
+        }
+        try {
+            const imagenComprimida = await comprimirImagen(file, 0.7, 1200)
+            setBannerPreview(imagenComprimida)
+            setUserData(prev => ({ ...prev, banner: imagenComprimida }))
+        } catch (error) {
+            console.error("Error comprimiendo imagen:", error)
+            toast.error("Error al procesar la imagen de banner.")
+            setMessage({ text: "Error al procesar la imagen.", type: "error" })
         }
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setSaving(true)
         setMessage({ text: "", type: "" })
 
+        // Validar todos los campos antes de enviar
+        const err = {
+            nombreUsuario: validarNombreUsuario(userData.nombreUsuario),
+            nombreCompleto: validarNombreCompleto(userData.nombreCompleto),
+            correo: validarCorreo(userData.correo),
+            fechaNac: validarFechaNacimiento(userData.fechaNac)
+        }
+        setErrores(err)
+
+        const primerError = Object.values(err).find(e => e !== null)
+        if (primerError) {
+            setMessage({ text: primerError, type: "error" })
+            return
+        }
+
+        setSaving(true)
         try {
-            // Primero subir foto si cambió
             if (fotoInputRef.current?.files[0]) {
                 const formData = new FormData()
                 formData.append('foto', fotoInputRef.current.files[0])
-                await fetch(`${API_URL}/upload/foto/${usuarioActual.id}`, {
-                    method: 'POST',
-                    body: formData
-                })
+                await fetch(`${API_URL}/upload/foto/${usuarioActual.id}`, { method: 'POST', body: formData })
             }
-
-            // Subir banner si cambió
             if (bannerInputRef.current?.files[0]) {
                 const formData = new FormData()
                 formData.append('banner', bannerInputRef.current.files[0])
-                await fetch(`${API_URL}/upload/banner/${usuarioActual.id}`, {
-                    method: 'POST',
-                    body: formData
-                })
+                await fetch(`${API_URL}/upload/banner/${usuarioActual.id}`, { method: 'POST', body: formData })
             }
 
-            // Actualizar datos de texto
             const res = await fetch(`${API_URL}/usuarios/actualizar/${usuarioActual.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    nombreUsuario: userData.nombreUsuario,
-                    nombreCompleto: userData.nombreCompleto,
-                    correo: userData.correo,
+                    nombreUsuario: userData.nombreUsuario.trim(),
+                    nombreCompleto: userData.nombreCompleto.trim(),
+                    correo: userData.correo.trim(),
                     fechaNac: userData.fechaNac,
                     descripcion: userData.descripcion
                 })
             })
 
             const data = await res.json()
-            
             if (res.ok) {
                 setMessage({ text: "¡Datos actualizados correctamente!", type: "success" })
-                
-                const usuarioActualizado = { 
-                    ...usuarioActual, 
-                    nombreUsuario: userData.nombreUsuario,
-                    nombreCompleto: userData.nombreCompleto
+                const usuarioActualizado = {
+                    ...usuarioActual,
+                    nombreUsuario: userData.nombreUsuario.trim(),
+                    nombreCompleto: userData.nombreCompleto.trim()
                 }
                 localStorage.setItem("usuario", JSON.stringify(usuarioActualizado))
-                
                 setTimeout(() => setMessage({ text: "", type: "" }), 3000)
             } else {
                 setMessage({ text: data.error || "Error al actualizar", type: "error" })
@@ -190,76 +243,62 @@ function Settings() {
     }
 
     if (loading) {
-        return <div className="SettingsContainer">Cargando...</div>
+        return <div className="SettingsContainer"><p style={{ color: "white", textAlign: "center", paddingTop: 40 }}>Cargando...</p></div>
     }
 
     return (
         <div className="SettingsContainer">
             <form onSubmit={handleSubmit}>
-                {/* Foto y Banner */}
+
+                {/* ── Foto y Banner ─────────────────────────── */}
                 <div className="SettingsCard">
-                    <div className="SettingsTitle">
-                        <span>📸</span>
-                        <span>Foto y Banner</span>
-                    </div>
-                    
+                    <div className="SettingsTitle">Foto y Banner</div>
                     <div className="PhotoSection">
                         <div className="PhotoCard">
-                            <h4>Foto de Perfil</h4>
-                            <img 
-                                src={fotoPreview || "/src/assets/images/conejito.jpg"} 
-                                alt="Preview" 
+                            <p className="photo-label">Foto de Perfil</p>
+                            <img
+                                src={fotoPreview || FotoDefault}
+                                alt="Preview"
                                 className="AvatarPreview"
-                                onError={(e) => e.target.src = "/src/assets/images/conejito.jpg"}
+                                onError={(e) => e.target.src = FotoDefault}
                             />
                             <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/avif"
                                 onChange={handleFotoChange}
                                 style={{ display: "none" }}
                                 ref={fotoInputRef}
                             />
-                            <button 
-                                type="button" 
-                                className="FileInputLabel"
-                                onClick={() => fotoInputRef.current.click()}
-                            >
+                            <button type="button" className="FileInputLabel" onClick={() => fotoInputRef.current.click()}>
                                 Cambiar Foto
                             </button>
                         </div>
-                        
+
                         <div className="PhotoCard">
-                            <h4>Banner</h4>
-                            <img 
-                                src={bannerPreview || "/src/assets/images/Banner 1.jpg"} 
-                                alt="Banner Preview" 
+                            <p className="photo-label">Banner</p>
+                            <img
+                                src={bannerPreview || BannerDefault}
+                                alt="Banner Preview"
                                 className="BannerPreview"
-                                onError={(e) => e.target.src = "/src/assets/images/Banner 3.png"}
+                                onError={(e) => e.target.src = BannerDefault}
                             />
                             <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/avif"
                                 onChange={handleBannerChange}
                                 style={{ display: "none" }}
                                 ref={bannerInputRef}
                             />
-                            <button 
-                                type="button" 
-                                className="FileInputLabel"
-                                onClick={() => bannerInputRef.current.click()}
-                            >
+                            <button type="button" className="FileInputLabel" onClick={() => bannerInputRef.current.click()}>
                                 Cambiar Banner
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Información Personal */}
+                {/* ── Información Personal ──────────────────── */}
                 <div className="SettingsCard">
-                    <div className="SettingsTitle">
-                        <span>👤</span>
-                        <span>Información Personal</span>
-                    </div>
+                    <div className="SettingsTitle">Información Personal</div>
 
                     {message.text && (
                         <div className={message.type === "success" ? "SuccessMessage" : "ErrorMessage"}>
@@ -273,9 +312,14 @@ function Settings() {
                             <input
                                 type="text"
                                 value={userData.nombreUsuario}
-                                onChange={(e) => setUserData({ ...userData, nombreUsuario: e.target.value })}
+                                onChange={(e) => handleChange("nombreUsuario", e.target.value)}
+                                placeholder="ej: juan_perez123"
+                                maxLength={30}
+                                className={errores.nombreUsuario ? "input-error" : ""}
                                 required
                             />
+                            {errores.nombreUsuario && <span className="field-error">{errores.nombreUsuario}</span>}
+                            <span className="field-hint">Solo letras (a-z), números, puntos y guiones bajos.</span>
                         </div>
 
                         <div className="FormGroup">
@@ -283,8 +327,12 @@ function Settings() {
                             <input
                                 type="text"
                                 value={userData.nombreCompleto}
-                                onChange={(e) => setUserData({ ...userData, nombreCompleto: e.target.value })}
+                                onChange={(e) => handleChange("nombreCompleto", e.target.value)}
+                                placeholder="ej: Juan Pérez"
+                                maxLength={60}
+                                className={errores.nombreCompleto ? "input-error" : ""}
                             />
+                            {errores.nombreCompleto && <span className="field-error">{errores.nombreCompleto}</span>}
                         </div>
                     </div>
 
@@ -294,9 +342,13 @@ function Settings() {
                             <input
                                 type="email"
                                 value={userData.correo}
-                                onChange={(e) => setUserData({ ...userData, correo: e.target.value })}
+                                onChange={(e) => handleChange("correo", e.target.value)}
+                                placeholder="ej: correo@dominio.com"
+                                maxLength={100}
+                                className={errores.correo ? "input-error" : ""}
                                 required
                             />
+                            {errores.correo && <span className="field-error">{errores.correo}</span>}
                         </div>
 
                         <div className="FormGroup">
@@ -304,8 +356,11 @@ function Settings() {
                             <input
                                 type="date"
                                 value={userData.fechaNac}
-                                onChange={(e) => setUserData({ ...userData, fechaNac: e.target.value })}
+                                onChange={(e) => handleChange("fechaNac", e.target.value)}
+                                max={new Date().toISOString().split('T')[0]}
+                                className={errores.fechaNac ? "input-error" : ""}
                             />
+                            {errores.fechaNac && <span className="field-error">{errores.fechaNac}</span>}
                         </div>
                     </div>
 
@@ -314,44 +369,31 @@ function Settings() {
                         <textarea
                             rows="3"
                             value={userData.descripcion}
-                            onChange={(e) => setUserData({ ...userData, descripcion: e.target.value })}
+                            onChange={(e) => setUserData(prev => ({ ...prev, descripcion: e.target.value }))}
                             placeholder="Escribe algo sobre ti..."
+                            maxLength={160}
                         />
+                        <span className="field-hint">{userData.descripcion.length}/160 caracteres</span>
                     </div>
                 </div>
 
-                {/* Gestión de Cuenta */}
-                <div className="SettingsCard">
-                    <div className="SettingsTitle" style={{ color: "#e74c3c" }}>
-                        <span>🔒</span>
-                        <span>Sesión de Usuario</span>
-                    </div>
-                    <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", margin: "0 0 15px 0" }}>
-                        Al cerrar sesión se eliminarán tus credenciales guardadas localmente y serás redirigido a la pantalla de inicio de sesión.
+                {/* ── Sesión ───────────────────────────────── */}
+                <div className="SettingsCard SettingsCard--danger">
+                    <div className="SettingsTitle">Sesión de Usuario</div>
+                    <p className="danger-hint">
+                        Al cerrar sesión, tus credenciales guardadas localmente serán eliminadas y serás redirigido al inicio de sesión.
                     </p>
-                    <button 
-                        type="button" 
-                        className="LogoutButton"
-                        onClick={() => setMostrarAlert(true)}
-                    >
+                    <button type="button" className="LogoutButton" onClick={() => setMostrarAlert(true)}>
                         Cerrar Sesión
                     </button>
                 </div>
 
-                {/* Botones */}
+                {/* ── Botones de acción ─────────────────────── */}
                 <div className="ButtonGroup">
-                    <button 
-                        type="button" 
-                        className="CancelButton"
-                        onClick={() => cargarDatosUsuario()}
-                    >
+                    <button type="button" className="CancelButton" onClick={cargarDatosUsuario}>
                         Cancelar
                     </button>
-                    <button 
-                        type="submit" 
-                        className="SaveButton"
-                        disabled={saving}
-                    >
+                    <button type="submit" className="SaveButton" disabled={saving}>
                         {saving ? "Guardando..." : "Guardar Cambios"}
                     </button>
                 </div>

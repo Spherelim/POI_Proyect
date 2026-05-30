@@ -42,12 +42,7 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
         }
     }
 
-    // Iconos SVG inline
-    const IconoAjustes = () => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.33-.02-.64-.06-.94l2.02-1.58c.18-.14.23-.38.12-.56l-1.89-3.28c-.12-.19-.36-.26-.56-.18l-2.38.96c-.5-.38-1.06-.68-1.66-.88L14.45 3.5c-.04-.2-.2-.34-.4-.34h-3.78c-.2 0-.36.14-.4.34l-.3 2.52c-.6.2-1.16.5-1.66.88l-2.38-.96c-.2-.08-.44-.01-.56.18l-1.89 3.28c-.12.19-.07.42.12.56l2.02 1.58c-.04.3-.06.61-.06.94 0 .33.02.64.06.94l-2.02 1.58c-.18.14-.23.38-.12.56l1.89 3.28c.12.19.36.26.56.18l2.38-.96c.5.38 1.06.68 1.66.88l.3 2.52c.04.2.2.34.4.34h3.78c.2 0 .36-.14.4-.34l.3-2.52c.6-.2 1.16-.5 1.66-.88l2.38.96c.2.08.44.01.56-.18l1.89-3.28c.12-.19.07-.42-.12-.56l-2.02-1.58zM12 15c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
-        </svg>
-    )
+    // Solo mantener los iconos de navegación necesarios (sin engranaje — el avatar hace esa función)
 
     const IconoNoti = () => (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
@@ -71,24 +66,33 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
         <div className="Perfil-Card">
             <div style={{display: "inline-flex", alignItems: "center", gap: "6px", width: "100%", overflow: "hidden"}}>
 
-                {/* Contenedor de avatar con dimensiones fijas — evita layout shift */}
-                <div style={{
-                    width: "40px",
-                    height: "40px",
-                    minWidth: "40px",
-                    borderRadius: "50%",
-                    overflow: "hidden",
-                    flexShrink: 0,
-                    background: "rgba(255,255,255,0.15)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                }}>
+                {/* Avatar — clic abre Ajustes de perfil */}
+                <div
+                    title="Ver mi perfil y ajustes"
+                    onClick={() => cambiarVista("ajustes")}
+                    style={{
+                        width: "40px",
+                        height: "40px",
+                        minWidth: "40px",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        flexShrink: 0,
+                        background: "rgba(255,255,255,0.15)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        border: "2px solid transparent",
+                        transition: "border-color 0.2s"
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(102,126,234,0.7)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "transparent"}
+                >
                     {fotoPerfil ? (
                         <img
                             src={fotoPerfil}
                             style={{width: "100%", height: "100%", objectFit: "cover"}}
-                            alt="Avatar"
+                            alt="Mi perfil"
                             onError={(e) => { e.target.src = FotoDefault }}
                         />
                     ) : (
@@ -101,9 +105,6 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
                 <span style={{color:"white", fontSize:"13px", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
                     {nombreUsuario}
                 </span>
-                <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("ajustes")}>
-                    <IconoAjustes/>
-                </div>
                 <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("noti")}>
                     <IconoNoti/>
                 </div>
