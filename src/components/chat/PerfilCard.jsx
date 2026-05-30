@@ -5,7 +5,7 @@ import FotoDefault from "/src/assets/images/Conejito.jpg"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function PerfilCard({cambiarVista, abrirSolicitudes}){
+function PerfilCard({cambiarVista, abrirSolicitudes, notificacionesNoLeidas}){
 
     const usuario = JSON.parse(localStorage.getItem("usuario"))
     const [fotoPerfil, setFotoPerfil] = useState("")
@@ -105,8 +105,28 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
                 <span style={{color:"white", fontSize:"13px", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
                     {nombreUsuario}
                 </span>
-                <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("noti")}>
+                <div style={{position: "relative", display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("noti")}>
                     <IconoNoti/>
+                    {notificacionesNoLeidas > 0 && (
+                        <div style={{
+                            position: "absolute",
+                            top: "0px",
+                            right: "0px",
+                            background: "#e74c3c", /* Rojo alerta */
+                            color: "white",
+                            fontSize: "9px",
+                            fontWeight: "bold",
+                            borderRadius: "50%",
+                            width: "14px",
+                            height: "14px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: "0 0 4px rgba(0,0,0,0.5)"
+                        }}>
+                            {notificacionesNoLeidas > 9 ? "9+" : notificacionesNoLeidas}
+                        </div>
+                    )}
                 </div>
                 <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("tareas")}>
                     <IconoTareas/>

@@ -36,6 +36,32 @@ function Chat(){
     const [actualizarSidebar, setActualizarSidebar] = useState(0)
     const [sidebarVisible, setSidebarVisible] = useState(true)
     const [mostrarBotonBajar, setMostrarBotonBajar] = useState(false)
+    const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0)
+
+    const cargarNotificaciones = async () => {
+        if (!usuario?.id) return;
+        try {
+            const res = await fetch(`${API_URL}/notificaciones/${usuario.id}`);
+            const data = await res.json();
+            const noLeidas = data.filter(n => n.leido === 0).length;
+            setNotificacionesNoLeidas(noLeidas);
+        } catch (error) {
+            console.error("Error cargando notificaciones:", error);
+        }
+    }
+
+    useEffect(() => {
+        cargarNotificaciones();
+
+        const handleNotificacionesLeidas = () => {
+            setNotificacionesNoLeidas(0);
+        };
+        window.addEventListener("notificaciones-leidas", handleNotificacionesLeidas);
+
+        return () => {
+            window.removeEventListener("notificaciones-leidas", handleNotificacionesLeidas);
+        }
+    }, []);
 
     const prevGrupoRef = useRef(null)
 
@@ -468,7 +494,13 @@ function Chat(){
 
         if (!amigoActivo) {
             console.log("No hay amigo activo, no cargar mensajes")
+            socket.emit("leave_chat")
             return
+        }
+
+        // Avisar al backend qué chat (privado) estoy viendo para no enviarme notificaciones
+        if (!amigoActivo.esGrupo) {
+            socket.emit("join_chat", amigoActivo.ID_Us)
         }
 
         // Unirse a la sala del grupo nuevo si aplica
@@ -503,10 +535,20 @@ function Chat(){
         }
 
         // ── Actualizaciones en tiempo real de grupos ──────────────────
-        // Nuevo grupo creado o agregado a uno — refrescar sidebar
+        // Nuevo grupo creado o agregado a uno → refrescar sidebar
         const onGrupoCreado = () => {
             setActualizarSidebar(prev => prev + 1)
         }
+        socket.on("grupo_creado", onGrupoCreado)
+        socket.on("agregado_grupo", onGrupoCreado)
+
+        socket.on("nueva-notificacion", (data) => {
+            console.log("Nueva notificación recibida:", data);
+            cargarNotificaciones();
+            if(data.tipo !== "mensaje") {
+                toast.info(`🔔 ${data.mensaje}`);
+            }
+        })
 
         // Cambio en el grupo activo (rol, miembros, nombre, foto) — refrescar panel info y sidebar
         const onGrupoActualizado = ({ idConversacion, tipo, grupo }) => {
@@ -637,6 +679,11 @@ function Chat(){
                 archivo: m.archivo || null
             }))
             setMensajes(formateados)
+            
+            // 🔥 Tras cargar, darle un respiro al backend para actualizar la DB y luego refrescar la barra lateral
+            setTimeout(() => {
+                setActualizarSidebar(prev => prev + 1)
+            }, 100)
         } catch (error) {
             console.error("Error cargando mensajes:", error)
         }
@@ -648,8 +695,13 @@ function Chat(){
             console.log("Mensaje recibido por socket:", data)
             const amigoActual = amigoActivoRef.current
 
-            // Siempre descifrar antes de mostrar en UI (si no está cifrado, desencriptar() lo devuelve igual)
+            // Siempre descifrar antes de mostrar en UI
             const textoLimpio = desencriptar(data.text)
+            
+            // 🔥 Refrescar barra lateral de inmediato
+            setActualizarSidebar(prev => prev + 1)
+            // Avisar a la bandeja de notificaciones si está abierta
+            window.dispatchEvent(new Event("actualizar-bandeja"))
 
             if (amigoActual && !amigoActual.esGrupo && String(data.idEmisor) === String(amigoActual.ID_Us)) {
                 setMensajes(prev => [...prev, {
@@ -672,6 +724,11 @@ function Chat(){
 
             // Siempre descifrar antes de mostrar
             const textoLimpio = desencriptar(data.text)
+            
+            // 🔥 Refrescar barra lateral de inmediato
+            setActualizarSidebar(prev => prev + 1)
+            // Avisar a la bandeja
+            window.dispatchEvent(new Event("actualizar-bandeja"))
 
             if (amigoActual && amigoActual.esGrupo && String(data.idConversacion) === String(amigoActual.ID_Conversacion)) {
                 setMensajes(prev => [...prev, {
@@ -773,8 +830,6 @@ function Chat(){
             setDatosLlamada(info)
             datosLlamadaRef.current = info
             setLlamadaEntrante(true)
-            
-            toast.info(`📞 ${nomEmisor} te está llamando a ti, ${nomReceptor}`, { autoClose: 5000 })
         })
 
         socket.on("webrtc-answer", async (data) => {
@@ -831,10 +886,8 @@ function Chat(){
         })
 
         socket.on("webrtc-hangup", (data) => {
-            if (String(data.from) === String(usuario?.id)) return
-            console.log("Llamada finalizada por el otro peer:", data.from)
+            console.log("Colgar (Hangup) recibido de:", data.from)
             finalizarLlamada()
-            toast.info("Llamada finalizada.")
         })
 
         socket.on("webrtc-reject", async (data) => {
@@ -940,7 +993,6 @@ function Chat(){
                     nombreEmisor: usuario.nombreUsuario || usuario.NombreUsuario,
                     nombreGrupo: amigoActivo.nombreGrupo
                 })
-
                 setMensajes(prev => [...prev, { text: textoParaMostrar, type: "right", tipo: "texto" }])
             } else {
                 await fetch(`${API_URL}/mensajes/enviar`, {
@@ -962,6 +1014,9 @@ function Chat(){
 
                 setMensajes(prev => [...prev, { text: textoParaMostrar, type: "right", tipo: "texto" }])
             }
+            
+            // 🔥 Actualizar sidebar al instante para que suba en la lista
+            setActualizarSidebar(prev => prev + 1)
         } catch (error) {
             console.error("Error enviando mensaje:", error)
         }
@@ -1001,7 +1056,12 @@ function Chat(){
                 archivo: urlFinal
             })
         }
+        
+        // 🔥 Actualizar sidebar al instante al enviar archivo
+        setActualizarSidebar(prev => prev + 1)
     }
+
+    // --- FUNCIONES DE LLAMADA (WebRTC) ---
 
     const handleUbicacionEnviada = async (coordsStr) => {
         if (!amigoActivo) return
@@ -1160,6 +1220,8 @@ function Chat(){
                 seleccionarAmigo={handleSeleccionarAmigo}
                 actualizarSidebar={actualizarSidebar}
                 className={sidebarVisible ? "" : "oculto"}
+                notificacionesNoLeidas={notificacionesNoLeidas}
+                amigoActivo={amigoActivo}
             />
 
             <div className="Chat-area">
@@ -1230,7 +1292,10 @@ function Chat(){
 
                 {visita === "noti" && (
                     <VistaGenerica titulo="Notificaciones">
-                        <Notificacion/>
+                        <Notificacion 
+                            seleccionarAmigo={handleSeleccionarAmigo} 
+                            cambiarVista={handleCambiarVista} 
+                        />
                     </VistaGenerica>
                 )}
 

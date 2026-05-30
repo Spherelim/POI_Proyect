@@ -72,8 +72,8 @@ function GroupPerfil({ grupo, usuarioActualId, alSalirGrupo }){
         }
     }
 
-    const handleAgregarMiembro = async () => {
-        if (!amigoSeleccionado) return
+    const handleAgregarMiembro = async (idAmigo = amigoSeleccionado) => {
+        if (!idAmigo) return
         try {
             const res = await fetch(`${API_URL}/grupos/miembros/agregar`, {
                 method: "POST",
@@ -81,7 +81,7 @@ function GroupPerfil({ grupo, usuarioActualId, alSalirGrupo }){
                 body: JSON.stringify({
                     idConversacion,
                     idEjecutor: usuarioActualId,
-                    idNuevoMiembro: parseInt(amigoSeleccionado)
+                    idNuevoMiembro: parseInt(idAmigo)
                 })
             })
             const data = await res.json()
@@ -386,19 +386,41 @@ function GroupPerfil({ grupo, usuarioActualId, alSalirGrupo }){
                         {amigosNoMiembros.length === 0 ? (
                             <p style={{color: "rgba(255,255,255,0.6)", fontSize: "13px"}}>No tienes más amigos para agregar.</p>
                         ) : (
-                            <div className="form-agregar">
-                                <select
-                                    value={amigoSeleccionado}
-                                    onChange={(e) => setAmigoSeleccionado(e.target.value)}
-                                    className="select-amigo"
-                                >
-                                    {amigosNoMiembros.map(a => (
-                                        <option key={a.ID_Us} value={a.ID_Us}>
-                                            {a.NombreUsuario}
-                                        </option>
-                                    ))}
-                                </select>
-                                <button className="btn-confirm-add" onClick={handleAgregarMiembro}>Agregar</button>
+                            <div className="amigos-lista-agregar" style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto', padding: '10px 0' }}>
+                                {amigosNoMiembros.map(a => {
+                                    const foto = a.Foto ? `${API_URL}${a.Foto}` : FotoDefault;
+                                    return (
+                                        <div key={a.ID_Us} 
+                                            className="miembro-card" 
+                                            style={{ 
+                                                cursor: 'pointer', 
+                                                background: 'rgba(255,255,255,0.05)', 
+                                                padding: '10px', 
+                                                borderRadius: '8px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                transition: 'background 0.2s'
+                                            }} 
+                                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                                            onClick={() => handleAgregarMiembro(a.ID_Us)}>
+                                            
+                                            <img src={foto} alt={a.NombreUsuario} style={{width: '35px', height: '35px', borderRadius: '50%', objectFit: 'cover'}}/>
+                                            <span style={{flex: 1, marginLeft: '10px', color: '#fff'}}>{a.NombreUsuario}</span>
+                                            
+                                            <div style={{
+                                                background: '#667eea',
+                                                color: 'white',
+                                                padding: '4px 12px',
+                                                borderRadius: '20px',
+                                                fontSize: '12px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                Añadir
+                                            </div>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         )}
                     </div>

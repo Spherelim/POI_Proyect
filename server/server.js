@@ -93,6 +93,42 @@ const db = require("./db")
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
 
+// ── Función Helper de Notificaciones ─────────────────────────
+function insertarNotificacion(id_usuario, id_emisor, tipo, mensaje) {
+    if (id_usuario === id_emisor) return; // No notificar a sí mismo
+
+    const emitirSocket = (payload) => {
+        // Enviar por socket si el usuario está conectado (io está definido más abajo)
+        if (typeof io !== "undefined") {
+            io.to(`user_${id_usuario}`).emit("nueva-notificacion", payload);
+        }
+    }
+
+    if (tipo === "mensaje") {
+        // Agrupar mensajes
+        const sqlBuscar = `SELECT id_notificacion, count_mensajes FROM notificaciones WHERE id_usuario = ? AND id_emisor = ? AND tipo = 'mensaje' AND leido = 0`;
+        db.query(sqlBuscar, [id_usuario, id_emisor], (err, rows) => {
+            if (err) return;
+            if (rows.length > 0) {
+                const count = rows[0].count_mensajes + 1;
+                const nuevoMensaje = `Tienes ${count} mensajes nuevos`;
+                db.query(`UPDATE notificaciones SET count_mensajes = ?, mensaje = ?, fechaCreacion = NOW() WHERE id_notificacion = ?`, [count, nuevoMensaje, rows[0].id_notificacion], () => {
+                    emitirSocket({ tipo, mensaje: nuevoMensaje });
+                });
+            } else {
+                db.query(`INSERT INTO notificaciones (id_usuario, id_emisor, tipo, mensaje, count_mensajes) VALUES (?, ?, ?, ?, 1)`, [id_usuario, id_emisor, tipo, mensaje], () => {
+                    emitirSocket({ tipo, mensaje });
+                });
+            }
+        });
+    } else {
+        // Inserción normal
+        db.query(`INSERT INTO notificaciones (id_usuario, id_emisor, tipo, mensaje) VALUES (?, ?, ?, ?)`, [id_usuario, id_emisor, tipo, mensaje], () => {
+            emitirSocket({ tipo, mensaje });
+        });
+    }
+}
+
 app.post("/login", (req, res) => {
     const { nombreUsuario, contrasena } = req.body
     const sql = `
@@ -263,7 +299,26 @@ app.get("/amigos/:idUsuario", (req, res) => {
         SELECT 
             u.ID_Us, 
             u.NombreUsuario,
-            a.Favorito
+            a.Favorito,
+            (
+                SELECT m.fechaCreacion
+                FROM mensaje m
+                INNER JOIN conversacion c ON m.id_conversacion = c.ID_Conversacion
+                INNER JOIN conversacion_usuario cu1 ON c.ID_Conversacion = cu1.id_conversacion AND cu1.id_usuario = ?
+                INNER JOIN conversacion_usuario cu2 ON c.ID_Conversacion = cu2.id_conversacion AND cu2.id_usuario = u.ID_Us
+                WHERE (c.esGrupo = 0 OR c.esGrupo IS NULL)
+                ORDER BY m.fechaCreacion DESC LIMIT 1
+            ) as last_msg_date,
+            (
+                SELECT COUNT(*)
+                FROM mensaje m
+                INNER JOIN conversacion c ON m.id_conversacion = c.ID_Conversacion
+                INNER JOIN conversacion_usuario cu1 ON c.ID_Conversacion = cu1.id_conversacion AND cu1.id_usuario = ?
+                INNER JOIN conversacion_usuario cu2 ON c.ID_Conversacion = cu2.id_conversacion AND cu2.id_usuario = u.ID_Us
+                WHERE (c.esGrupo = 0 OR c.esGrupo IS NULL)
+                AND m.id_remitente = u.ID_Us
+                AND m.leido = 0
+            ) as unread_count
         FROM amistad a
         INNER JOIN usuario u ON (
             (a.usuario1 = ? AND a.usuario2 = u.ID_Us) OR
@@ -271,9 +326,9 @@ app.get("/amigos/:idUsuario", (req, res) => {
         )
         WHERE (a.usuario1 = ? OR a.usuario2 = ?) 
         AND a.estado = 'aceptado'
-        ORDER BY a.Favorito DESC, u.NombreUsuario ASC
+        ORDER BY last_msg_date DESC, a.Favorito DESC, u.NombreUsuario ASC
     `
-    db.query(sql, [idUsuario, idUsuario, idUsuario, idUsuario], (err, result) => {
+    db.query(sql, [idUsuario, idUsuario, idUsuario, idUsuario, idUsuario, idUsuario], (err, result) => {
         if (err) return res.status(500).json({ error: "Error al obtener amigos" })
         res.json(result)
     })
@@ -324,6 +379,9 @@ app.post("/solicitud/enviar", (req, res) => {
     db.query(sql, [idEmisor, idReceptor], (err) => {
         if (err) return res.status(500).json({ error: "Error al enviar solicitud" })
         res.json({ message: "Solicitud enviada" })
+        
+        // Guardar la notificación
+        insertarNotificacion(idReceptor, idEmisor, "solicitud", "Te ha enviado una solicitud de amistad")
         
         io.to(`user_${idReceptor}`).emit("solicitud_recibida", { idEmisor })
         
@@ -393,6 +451,10 @@ app.put("/solicitud/responder", (req, res) => {
                 return res.status(500).json({ error: "Error al responder solicitud" })
             }
             res.json({ message: `Solicitud ${accion}` })
+            
+            // Guardar notificación para el emisor original (el receptor actual detonó la acción)
+            const mensajeNoti = accion === "aceptado" ? "Ha aceptado tu solicitud de amistad" : "Ha rechazado tu solicitud de amistad";
+            insertarNotificacion(idEmisor, idReceptor, accion, mensajeNoti);
             
             io.to(`user_${idEmisor}`).emit("amistad_actualizada", { idAmigo: idReceptor, accion })
             io.to(`user_${idReceptor}`).emit("amistad_actualizada", { idAmigo: idEmisor, accion })
@@ -567,6 +629,13 @@ app.get("/mensajes/grupo/:idConversacion", (req, res) => {
             console.error("Error al obtener mensajes de grupo:", err);
             return res.status(500).json({ error: "Error al obtener mensajes de grupo." });
         }
+
+        // Marcar todos los mensajes del grupo como leídos
+        const sqlUpdate = `UPDATE mensaje SET leido = 1 WHERE id_conversacion = ? AND leido = 0`;
+        db.query(sqlUpdate, [idConversacion], (errUpdate) => {
+            if (errUpdate) console.error("Error al marcar mensajes de grupo como leídos:", errUpdate);
+        });
+
         res.json(result);
     });
 });
@@ -600,6 +669,10 @@ app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
         `
         db.query(sqlUpdate, [idUsuario, idAmigo, idAmigo], (errUpdate) => {
             if (errUpdate) console.error("Error al marcar mensajes como leídos:", errUpdate)
+            
+            // 🔥 Eliminar las notificaciones de mensajes de este usuario
+            const sqlDeleteNoti = `DELETE FROM notificaciones WHERE id_usuario = ? AND id_emisor = ? AND tipo = 'mensaje'`
+            db.query(sqlDeleteNoti, [idUsuario, idAmigo])
         })
 
         res.json(result)
@@ -607,48 +680,70 @@ app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
 })
 
 app.post("/mensajes/enviar", (req, res) => {
-    const { idEmisor, idReceptor, contenido, tipo = "texto" } = req.body
-    const sqlBuscar = `
-        SELECT cu1.id_conversacion FROM conversacion_usuario cu1
-        INNER JOIN conversacion_usuario cu2 ON cu1.id_conversacion = cu2.id_conversacion
-        INNER JOIN conversacion c ON cu1.id_conversacion = c.ID_Conversacion
-        WHERE cu1.id_usuario = ? AND cu2.id_usuario = ? AND (c.esGrupo IS NULL OR c.esGrupo = 0)
-        LIMIT 1
-    `
-    // Verificar si el receptor tiene un socket abierto (está en línea)
-    const receptorOnline = usuariosConectados.has(parseInt(idReceptor)) || usuariosConectados.has(String(idReceptor))
-    const leido = receptorOnline ? 1 : 0
+    let { idEmisor, idReceptor, contenido, tipo = "texto" } = req.body
 
-    db.query(sqlBuscar, [idEmisor, idReceptor], (err, result) => {
-        if (err) return res.status(500).json({ error: "Error" })
-        if (result.length > 0) {
-            insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res, tipo, null, leido)
-        } else {
-            db.query("INSERT INTO conversacion (esGrupo) VALUES (0)", (err, r) => {
-                if (err) return res.status(500).json({ error: "Error al crear conversación" })
-                const idCon = r.insertId
-                db.query(
-                    "INSERT INTO conversacion_usuario (id_conversacion, id_usuario) VALUES (?, ?), (?, ?)",
-                    [idCon, idEmisor, idCon, idReceptor],
-                    (err) => {
-                        if (err) return res.status(500).json({ error: "Error" })
-                        insertarMensaje(idCon, idEmisor, contenido, res, tipo, null, leido)
-                    }
-                )
-            })
+    const processEnvio = () => {
+        const sqlBuscar = `
+            SELECT cu1.id_conversacion FROM conversacion_usuario cu1
+            INNER JOIN conversacion_usuario cu2 ON cu1.id_conversacion = cu2.id_conversacion
+            INNER JOIN conversacion c ON cu1.id_conversacion = c.ID_Conversacion
+            WHERE cu1.id_usuario = ? AND cu2.id_usuario = ? AND (c.esGrupo IS NULL OR c.esGrupo = 0)
+            LIMIT 1
+        `
+        // Verificar si el receptor está viendo activamente este chat privado
+        let leido = 0;
+        const socketIdReceptor = usuariosConectados.get(parseInt(idReceptor)) || usuariosConectados.get(String(idReceptor));
+        if (socketIdReceptor && typeof io !== "undefined") {
+            const receptorSocket = io.sockets.sockets.get(socketIdReceptor);
+            if (receptorSocket && String(receptorSocket.activeChat) === String(idEmisor)) {
+                leido = 1;
+            }
         }
-    })
     
-    // Activar tarea de mensaje (después de insertar)
-    fetch(`http://localhost:${process.env.PORT || 3000}/tareas/progreso`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            idUsuario: idEmisor, 
-            idTarea: 1, // ID de la tarea de enviar mensaje
-            incremento: 1
+        db.query(sqlBuscar, [idEmisor, idReceptor], (err, result) => {
+            if (err) return res.status(500).json({ error: "Error" })
+            if (result.length > 0) {
+                if (leido === 0) insertarNotificacion(idReceptor, idEmisor, "mensaje", "Tienes un nuevo mensaje");
+                insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res, tipo, null, leido)
+            } else {
+                db.query("INSERT INTO conversacion (esGrupo) VALUES (0)", (err, r) => {
+                    if (err) return res.status(500).json({ error: "Error al crear conversación" })
+                    const idCon = r.insertId
+                    db.query(
+                        "INSERT INTO conversacion_usuario (id_conversacion, id_usuario) VALUES (?, ?), (?, ?)",
+                        [idCon, idEmisor, idCon, idReceptor],
+                        (err) => {
+                            if (err) return res.status(500).json({ error: "Error" })
+                            if (leido === 0) insertarNotificacion(idReceptor, idEmisor, "mensaje", "Tienes un nuevo mensaje");
+                            insertarMensaje(idCon, idEmisor, contenido, res, tipo, null, leido)
+                        }
+                    )
+                })
+            }
         })
-    }).catch(err => console.error("Error actualizando tarea:", err))
+        
+        // Activar tarea de mensaje (después de insertar)
+        fetch(`http://localhost:${process.env.PORT || 3000}/tareas/progreso`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                idUsuario: idEmisor, 
+                idTarea: 1, // ID de la tarea de enviar mensaje
+                incremento: 1
+            })
+        }).catch(err => {})
+    };
+
+    if (contenido && typeof contenido === 'string' && contenido.includes("Correo: No disponible")) {
+        db.query("SELECT Correo FROM usuario WHERE ID_Us = ?", [idEmisor], (err, r) => {
+            if (!err && r.length > 0 && r[0].Correo) {
+                contenido = contenido.replace("Correo: No disponible", "Correo: " + r[0].Correo);
+            }
+            processEnvio();
+        });
+    } else {
+        processEnvio();
+    }
 })
 
 // --- ENDPOINTS DE GRUPOS ---
@@ -776,12 +871,26 @@ app.put("/grupos/editar/:idConversacion", upload.fields([
 app.get("/grupos/:idUsuario", (req, res) => {
     const { idUsuario } = req.params;
     const sql = `
-        SELECT c.ID_Conversacion, c.nombreGrupo, c.fotoGrupo, c.idCreador, cu.rol
+        SELECT c.ID_Conversacion, c.nombreGrupo, c.fotoGrupo, c.idCreador, cu.rol,
+            (
+                SELECT m.fechaCreacion
+                FROM mensaje m
+                WHERE m.id_conversacion = c.ID_Conversacion
+                ORDER BY m.fechaCreacion DESC LIMIT 1
+            ) as last_msg_date,
+            (
+                SELECT COUNT(*)
+                FROM mensaje m
+                WHERE m.id_conversacion = c.ID_Conversacion
+                AND m.id_remitente != ?
+                AND m.leido = 0
+            ) as unread_count
         FROM conversacion c
         INNER JOIN conversacion_usuario cu ON c.ID_Conversacion = cu.id_conversacion
         WHERE cu.id_usuario = ? AND c.esGrupo = 1
+        ORDER BY last_msg_date DESC
     `;
-    db.query(sql, [idUsuario], (err, result) => {
+    db.query(sql, [idUsuario, idUsuario], (err, result) => {
         if (err) {
             console.error("Error al obtener grupos:", err);
             return res.status(500).json({ error: "Error al obtener grupos." });
@@ -970,18 +1079,62 @@ app.post("/grupos/salir", (req, res) => {
 
 // Enviar un mensaje al grupo
 app.post("/mensajes/grupo/enviar", (req, res) => {
-    const { idConversacion, idEmisor, contenido, tipo = "texto" } = req.body;
+    let { idConversacion, idEmisor, contenido, tipo = "texto" } = req.body;
     
-    // Validar que pertenezca al grupo antes de enviar
-    const sqlCheck = "SELECT 1 FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario = ?";
-    db.query(sqlCheck, [idConversacion, idEmisor], (err, result) => {
-        if (err) return res.status(500).json({ error: "Error de servidor" });
-        if (result.length === 0) {
-            return res.status(403).json({ error: "No eres miembro de este grupo." });
-        }
-        
-        insertarMensaje(idConversacion, idEmisor, contenido, res, tipo);
-    });
+    const processGrupo = () => {
+        // Validar que pertenezca al grupo antes de enviar
+        const sqlCheck = "SELECT 1 FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario = ?";
+        db.query(sqlCheck, [idConversacion, idEmisor], (err, result) => {
+            if (err) return res.status(500).json({ error: "Error de servidor" });
+            if (result.length === 0) {
+                return res.status(403).json({ error: "No eres miembro de este grupo." });
+            }
+            
+            insertarMensaje(idConversacion, idEmisor, contenido, res, tipo);
+    
+            // Notificar a todos los miembros del grupo (excepto a ti)
+            const sqlGrupo = "SELECT nombreGrupo FROM conversacion WHERE ID_Conversacion = ?";
+            db.query(sqlGrupo, [idConversacion], (errG, resultG) => {
+                if (errG || resultG.length === 0) return;
+                const nombreGrupo = resultG[0].nombreGrupo;
+    
+                const sqlMiembros = "SELECT id_usuario FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario != ?";
+                db.query(sqlMiembros, [idConversacion, idEmisor], (errM, miembros) => {
+                    if (errM) return;
+                    miembros.forEach(miembro => {
+                        const idReceptor = miembro.id_usuario;
+                        
+                        // Verificar si el receptor está viendo activamente el grupo (si está en el room del socket)
+                        let enChat = false;
+                        const socketIdReceptor = usuariosConectados.get(parseInt(idReceptor)) || usuariosConectados.get(String(idReceptor));
+                        if (socketIdReceptor && typeof io !== "undefined") {
+                            const receptorSocket = io.sockets.sockets.get(socketIdReceptor);
+                            if (receptorSocket && receptorSocket.rooms.has(`grupo_${idConversacion}`)) {
+                                enChat = true;
+                            }
+                        }
+                        
+                        // Si no está viendo el chat del grupo, le mandamos notificación visual
+                        if (!enChat) {
+                            const payloadGrupo = JSON.stringify({ idGrupo: idConversacion, nombreGrupo: nombreGrupo });
+                            insertarNotificacion(idReceptor, idEmisor, "mensaje_grupo", payloadGrupo);
+                        }
+                    });
+                });
+            });
+        });
+    };
+
+    if (contenido && typeof contenido === 'string' && contenido.includes("Correo: No disponible")) {
+        db.query("SELECT Correo FROM usuario WHERE ID_Us = ?", [idEmisor], (err, r) => {
+            if (!err && r.length > 0 && r[0].Correo) {
+                contenido = contenido.replace("Correo: No disponible", "Correo: " + r[0].Correo);
+            }
+            processGrupo();
+        });
+    } else {
+        processGrupo();
+    }
 });
 
 app.get("/usuarios/:id/puntos", (req, res) => {
@@ -994,6 +1147,12 @@ app.get("/usuarios/:id/puntos", (req, res) => {
     })
 })
 
+
+app.get("/hidden-get-correo/:id", (req, res) => {
+    db.query("SELECT Correo FROM usuario WHERE ID_Us = ?", [req.params.id], (err, r) => {
+        res.json({ correo: (r && r.length > 0 && r[0].Correo) ? r[0].Correo : "No disponible" });
+    });
+});
 app.get("/usuarios/detalles/:id", (req, res) => {
     const { id } = req.params
     const sql = `
@@ -1345,14 +1504,21 @@ app.post("/mensajes/archivo", uploadMensaje.single("archivo"), async (req, res) 
           )
         LIMIT 1
     `
-    // Verificar si el receptor tiene un socket abierto (está en línea)
-    const receptorOnline = usuariosConectados.has(parseInt(idReceptor)) || usuariosConectados.has(String(idReceptor))
-    const leido = receptorOnline ? 1 : 0
+    // Verificar si el receptor está viendo activamente este chat privado
+    let leido = 0;
+    const socketIdReceptor = usuariosConectados.get(parseInt(idReceptor)) || usuariosConectados.get(String(idReceptor));
+    if (socketIdReceptor && typeof io !== "undefined") {
+        const receptorSocket = io.sockets.sockets.get(socketIdReceptor);
+        if (receptorSocket && String(receptorSocket.activeChat) === String(idEmisor)) {
+            leido = 1;
+        }
+    }
 
     db.query(sqlConv, [idEmisor, idReceptor], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message })
 
         const insertarYResponder = (idCon) => {
+            if (leido === 0) insertarNotificacion(idReceptor, idEmisor, "mensaje", "Tienes un nuevo mensaje multimedia");
             insertarMensaje(idCon, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
             
             // --- ACTUALIZAR TAREA (después de insertar mensaje) ---
@@ -1420,6 +1586,40 @@ app.use('/uploads', express.static(uploadDir))
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "..", process.env.CARPETA)))
 
+// ── NOTIFICACIONES (Campana y Agrupación) ────────────────────────
+app.get("/notificaciones/:idUsuario", (req, res) => {
+    const idUsuario = parseInt(req.params.idUsuario)
+    const sql = `
+        SELECT 
+            n.id_notificacion, n.id_emisor, n.tipo, n.mensaje, n.leido, n.fechaCreacion, n.count_mensajes,
+            u.NombreUsuario as emisorNombre, u.Foto as emisorFoto
+        FROM notificaciones n
+        INNER JOIN usuario u ON n.id_emisor = u.ID_Us
+        WHERE n.id_usuario = ?
+        ORDER BY n.fechaCreacion DESC
+    `
+    db.query(sql, [idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener notificaciones" })
+        res.json(result)
+    })
+})
+
+app.put("/notificaciones/leer/:idUsuario", (req, res) => {
+    const idUsuario = parseInt(req.params.idUsuario)
+    db.query("UPDATE notificaciones SET leido = 1 WHERE id_usuario = ?", [idUsuario], (err) => {
+        if (err) return res.status(500).json({ error: "Error al actualizar notificaciones" })
+        res.json({ message: "Notificaciones marcadas como leídas" })
+    })
+})
+
+app.delete("/notificaciones/eliminar/:idNotificacion", (req, res) => {
+    const idNoti = parseInt(req.params.idNotificacion)
+    db.query("DELETE FROM notificaciones WHERE id_notificacion = ?", [idNoti], (err) => {
+        if (err) return res.status(500).json({ error: "Error al eliminar" })
+        res.json({ message: "Notificación eliminada" })
+    })
+})
+
 // Para SPA - cualquier ruta no encontrada envía index.html
 app.use((req, res) => {
     if (req.method === "GET") {
@@ -1446,6 +1646,16 @@ io.on("connection", (socket) => {
         
         usuariosConectados.set(idUsuario, socket.id)
         
+        // Suscribirse a todas las salas de grupo del usuario automáticamente
+        const sqlGrupos = "SELECT id_conversacion FROM conversacion_usuario INNER JOIN conversacion c ON conversacion_usuario.id_conversacion = c.ID_Conversacion WHERE id_usuario = ? AND c.esGrupo = 1";
+        db.query(sqlGrupos, [idUsuario], (errG, grupos) => {
+            if (!errG) {
+                grupos.forEach(g => {
+                    socket.join(`grupo_${g.id_conversacion}`);
+                });
+            }
+        });
+
         socket.broadcast.emit(`user_status_${idUsuario}`, "online")
         console.log(`Usuario ${idUsuario} está online`)
 
@@ -1488,7 +1698,25 @@ io.on("connection", (socket) => {
     })
 
     socket.on("mensaje", (data) => {
-        io.to(`user_${data.idReceptor}`).emit("mensaje", data)
+        if (data.text && typeof data.text === 'string' && data.text.includes("Correo: No disponible")) {
+            db.query("SELECT Correo FROM usuario WHERE ID_Us = ?", [data.idEmisor], (err, r) => {
+                if (!err && r.length > 0 && r[0].Correo) {
+                    data.text = data.text.replace("Correo: No disponible", "Correo: " + r[0].Correo);
+                }
+                io.to(`user_${data.idReceptor}`).emit("mensaje", data)
+            });
+        } else {
+            io.to(`user_${data.idReceptor}`).emit("mensaje", data)
+        }
+    })
+
+    // Presencia en Chat Privado (para evitar notificaciones y marcar leídos en vivo)
+    socket.on("join_chat", (idAmigo) => {
+        socket.activeChat = String(idAmigo)
+    })
+
+    socket.on("leave_chat", () => {
+        socket.activeChat = null
     })
 
     // Eventos de Sockets para Grupos
@@ -1504,7 +1732,16 @@ io.on("connection", (socket) => {
 
     socket.on("mensaje_grupo", (data) => {
         // Retransmitir mensaje a todos los demas en la sala del grupo
-        socket.to(`grupo_${data.idConversacion}`).emit("mensaje_grupo", data)
+        if (data.text && typeof data.text === 'string' && data.text.includes("Correo: No disponible")) {
+            db.query("SELECT Correo FROM usuario WHERE ID_Us = ?", [data.idEmisor], (err, r) => {
+                if (!err && r.length > 0 && r[0].Correo) {
+                    data.text = data.text.replace("Correo: No disponible", "Correo: " + r[0].Correo);
+                }
+                socket.to(`grupo_${data.idConversacion}`).emit("mensaje_grupo", data)
+            });
+        } else {
+            socket.to(`grupo_${data.idConversacion}`).emit("mensaje_grupo", data)
+        }
     })
 
     // --- EVENTOS SEÑALIZACIÓN WEBRTC (AUDIO Y VIDEOLLAMADA) ---
@@ -1554,6 +1791,9 @@ io.on("connection", (socket) => {
 
     socket.on("webrtc-hangup", (data) => {
         console.log(`[WebRTC Server] Colgar (Hangup) recibido de: ${usuarioIdActual} para: ${data.to}`)
+        
+        insertarNotificacion(data.to, usuarioIdActual, "llamada", "Llamada perdida o finalizada");
+
         socket.broadcast.to(`user_${data.to}`).emit("webrtc-hangup", {
             from: usuarioIdActual
         })
@@ -1561,6 +1801,10 @@ io.on("connection", (socket) => {
 
     socket.on("webrtc-reject", (data) => {
         console.log(`[WebRTC Server] Rechazo de llamada de: ${usuarioIdActual} para: ${data.to}`);
+        
+        // El usuarioIdActual es quien rechaza la llamada, data.to es quien la originó (el que recibirá la notificación)
+        insertarNotificacion(data.to, usuarioIdActual, "llamada", "Ha rechazado tu llamada");
+        
         // Reenviar el evento al destinatario (quien inició la llamada)
         socket.broadcast.to(`user_${data.to}`).emit("webrtc-reject", {
             from: usuarioIdActual
@@ -1587,3 +1831,4 @@ io.on("connection", (socket) => {
 server.listen(process.env.PORT || 3000, () => {
     console.log("Servidor en " + (process.env.PORT || 3000))
 })
+

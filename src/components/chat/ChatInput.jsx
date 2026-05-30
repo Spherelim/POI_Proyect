@@ -380,6 +380,70 @@ function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, onUbi
                                 </div>
                                 <span style={{ fontSize: "13px", color: "#ddd", fontWeight: "500" }}>Ubicación</span>
                             </button>
+
+                            {/* Opcion Contacto */}
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    setMostrarMenuAdjuntos(false);
+                                    let correo = "No disponible";
+                                    let nombre = "Usuario";
+                                    
+                                    const userLocal = JSON.parse(localStorage.getItem("usuario"));
+                                    if (userLocal) {
+                                        nombre = userLocal.NombreUsuario || userLocal.nombreUsuario || "Usuario";
+                                    }
+                                    
+                                    if (usuarioId) {
+                                        try {
+                                            const res = await fetch(`${API_URL}/hidden-get-correo/${usuarioId}`);
+                                            const data = await res.json();
+                                            if (data && data.correo) {
+                                                correo = data.correo;
+                                            }
+                                        } catch (e) {}
+                                    }
+
+                                    const msjContacto = `**Tarjeta de Contacto**\n👤 Nombre: ${nombre}\n✉️ Correo: ${correo}`;
+                                    
+                                    // Asignamos el mensaje al input y forzamos el envio
+                                    setMensaje(msjContacto);
+                                    setTimeout(() => {
+                                        const btnEnviar = document.querySelector(".btn-enviar");
+                                        if(btnEnviar) btnEnviar.click();
+                                    }, 100);
+                                }}
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    cursor: "pointer",
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    transition: "transform 0.2s"
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                            >
+                                <div style={{
+                                    width: "65px",
+                                    height: "45px",
+                                    borderRadius: "25px",
+                                    backgroundColor: "transparent",
+                                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+                                }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="#3b82f6"/>
+                                    </svg>
+                                </div>
+                                <span style={{ fontSize: "13px", color: "#ddd", fontWeight: "500" }}>Contacto</span>
+                            </button>
                         </div>
                     )}
                 </div>
@@ -412,3 +476,5 @@ function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, onUbi
 }
 
 export default ChatInput
+
+

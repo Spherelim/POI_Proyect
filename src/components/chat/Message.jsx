@@ -75,7 +75,6 @@ function Message({ text, type, senderName, tipo, archivo }) {
                         rel="noopener noreferrer"
                         className="msg-ubicacion-link"
                     >
-                        <span className="msg-location-icon">📍</span>
                         <span className="msg-location-text">Ver en Google Maps</span>
                     </a>
                 </div>

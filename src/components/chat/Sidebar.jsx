@@ -8,12 +8,28 @@ import FotoDefault from "/src/assets/images/Conejito.jpg"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSidebar, className}){
+function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSidebar, className, notificacionesNoLeidas, amigoActivo}){
 
     const usuario = JSON.parse(localStorage.getItem("usuario"))
     const [amigos, setAmigos] = useState([])
     const [grupos, setGrupos] = useState([])
     const [seccion, setSeccion] = useState("amigos") // 'amigos' o 'grupos'
+    
+    const formatearHora = (fechaSQL) => {
+        if (!fechaSQL) return "";
+        const fecha = new Date(fechaSQL);
+        const hoy = new Date();
+        const ayer = new Date(hoy);
+        ayer.setDate(ayer.getDate() - 1);
+        
+        if (fecha.toDateString() === hoy.toDateString()) {
+            return fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else if (fecha.toDateString() === ayer.toDateString()) {
+            return "Ayer";
+        } else {
+            return fecha.toLocaleDateString([], { day: '2-digit', month: 'short' });
+        }
+    }
     
     // Estados para crear grupo
     const [mostrarModal, setMostrarModal] = useState(false)
@@ -135,7 +151,11 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
 
     return(
         <div className={`sidebar${className ? ' ' + className : ''}`}>
-            <PerfilCard cambiarVista={cambiarVista} abrirSolicitudes={abrirSolicitudes}/>
+            <PerfilCard 
+                cambiarVista={cambiarVista} 
+                abrirSolicitudes={abrirSolicitudes}
+                notificacionesNoLeidas={notificacionesNoLeidas}
+            />
 
             {/* Selector de Sección */}
             <div className="sidebar-tabs">
@@ -165,10 +185,12 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                             key={amigo.ID_Us}
                             imagen={amigo.foto}
                             NomUser={amigo.NombreUsuario}
-                            ultmsg="Toca para chatear"
-                            time=""
+                            ultmsg={amigo.unread_count > 0 ? `${amigo.unread_count} mensajes nuevos` : "Toca para chatear"}
+                            time={formatearHora(amigo.last_msg_date)}
                             esFavorito={amigo.esFavorito}
                             abrirChat={() => handleSeleccionarAmigo(amigo)}
+                            unreadCount={amigo.unread_count || 0}
+                            activo={amigoActivo && !amigoActivo.esGrupo && amigoActivo.ID_Us === amigo.ID_Us}
                         />
                     ))
             ) : (
@@ -186,10 +208,12 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                                 key={grupo.ID_Conversacion}
                                 imagen={grupo.fotoGrupo ? `${API_URL}${grupo.fotoGrupo}` : FotoDefault}
                                 NomUser={grupo.nombreGrupo}
-                                ultmsg={grupo.rol === 'admin' ? "Administrador" : "Miembro"}
-                                time=""
+                                ultmsg={grupo.unread_count > 0 ? "Nuevos mensajes" : (grupo.rol === 'admin' ? "Administrador" : "Miembro")}
+                                time={formatearHora(grupo.last_msg_date)}
                                 esFavorito={false}
                                 abrirChat={() => handleSeleccionarGrupo(grupo)}
+                                unreadCount={grupo.unread_count || 0}
+                                activo={amigoActivo && amigoActivo.esGrupo && amigoActivo.ID_Conversacion === grupo.ID_Conversacion}
                             />
                         ))
                     }
