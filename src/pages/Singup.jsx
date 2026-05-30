@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
+import { toast } from "react-toastify"
 import "./Singup.css"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
@@ -16,15 +17,15 @@ function SingUp(){
 
 const registrar = async () => {
     if (!formData.nombreCompleto || !formData.nombreUsuario || !formData.fechaNac || !formData.correo || !formData.contrasena) {
-        alert("Por favor, completa todos los campos.")
+        toast.warning("Por favor, completa todos los campos.")
         return;
     }
     if (formData.contrasena.length < 8) {
-        alert("La contraseña debe tener al menos 8 caracteres.")
+        toast.warning("La contraseña debe tener al menos 8 caracteres.")
         return;
     }
     if (!/\S+@\S+\.\S+/.test(formData.correo)) {
-        alert("Por favor, ingresa un correo electrónico válido.")
+        toast.warning("Por favor, ingresa un correo electrónico válido.")
         return;
     }
 
@@ -44,14 +45,15 @@ const registrar = async () => {
         const data = await response.json()
 
         if (!response.ok) {
-            alert(data.error || "Error al registrar usuario.")
+            toast.error(data.error || "Error al registrar usuario.")
             return;
         }
 
+        toast.success("¡Registro completado! Ahora inicia sesión.")
         navigate("/Login")
     } catch (error) {
         console.error("Error:", error)
-        alert("No se pudo conectar al servidor.")
+        toast.error("No se pudo conectar al servidor.")
     }
 }
 

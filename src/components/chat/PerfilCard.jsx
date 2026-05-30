@@ -69,34 +69,48 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
 
     return(
         <div className="Perfil-Card">
-            <div style={{display: "inline-flex", alignItems: "center", gap: "8px", width: "100%"}}>
-                {fotoPerfil ? (
-                    <img 
-                        src={fotoPerfil} 
-                        style={{width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover"}}
-                        alt="Avatar"
-                        onError={(e) => {
-                            e.target.style.display = "none"
-                            e.target.nextSibling.style.display = "block"
-                        }}
-                    />
-                ) : null}
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg" style={{display: fotoPerfil ? "none" : "block"}}>
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                </svg>
-                <span style={{color:"white", fontSize:"13px", flex:1}}>
+            <div style={{display: "inline-flex", alignItems: "center", gap: "6px", width: "100%", overflow: "hidden"}}>
+
+                {/* Contenedor de avatar con dimensiones fijas — evita layout shift */}
+                <div style={{
+                    width: "40px",
+                    height: "40px",
+                    minWidth: "40px",
+                    borderRadius: "50%",
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    background: "rgba(255,255,255,0.15)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                }}>
+                    {fotoPerfil ? (
+                        <img
+                            src={fotoPerfil}
+                            style={{width: "100%", height: "100%", objectFit: "cover"}}
+                            alt="Avatar"
+                            onError={(e) => { e.target.src = FotoDefault }}
+                        />
+                    ) : (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                    )}
+                </div>
+
+                <span style={{color:"white", fontSize:"13px", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
                     {nombreUsuario}
                 </span>
-                <div style={{display: "flex", gap: "5px", cursor: "pointer"}} onClick={() => cambiarVista("ajustes")}>
+                <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("ajustes")}>
                     <IconoAjustes/>
                 </div>
-                <div style={{display: "flex", gap: "5px", cursor: "pointer"}} onClick={() => cambiarVista("noti")}>
+                <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("noti")}>
                     <IconoNoti/>
                 </div>
-                <div style={{display: "flex", gap: "5px", cursor: "pointer"}} onClick={() => cambiarVista("tareas")}>
+                <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("tareas")}>
                     <IconoTareas/>
                 </div>
-                <div style={{display: "flex", gap: "5px", cursor: "pointer"}} onClick={abrirSolicitudes}>
+                <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={abrirSolicitudes}>
                     <IconoSolicitud/>
                 </div>
             </div>

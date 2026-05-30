@@ -11,15 +11,18 @@ import BuscarIcon from "/src/assets/icons/busqueda (w).png"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function ChatHeader({abrirInfo, amigo}){
+function ChatHeader({abrirInfo, amigo, onVolver, onIniciarLlamada}){
 
-    const [mostrarAlert, setMostrarAlert] = useState(false)
     const [activo, setActivo] = useState(false)
     const [fotoAmigo, setFotoAmigo] = useState(null)
 
-    // Cargar foto del amigo cuando cambia
+    // Cargar foto del amigo o grupo cuando cambia
     useEffect(() => {
-        if (amigo?.ID_Us) {
+        if (!amigo) return;
+        
+        if (amigo.esGrupo) {
+            setFotoAmigo(amigo.fotoGrupo ? `${API_URL}${amigo.fotoGrupo}` : FotoDefault)
+        } else if (amigo.ID_Us) {
             fetch(`${API_URL}/usuarios/${amigo.ID_Us}/foto`)
                 .then(res => res.json())
                 .then(data => {
@@ -31,10 +34,10 @@ function ChatHeader({abrirInfo, amigo}){
                 })
                 .catch(err => console.error("Error cargando foto:", err))
         }
-    }, [amigo?.ID_Us])
+    }, [amigo])
 
-    // Si no hay amigo, mostrar placeholder
-    if (!amigo || !amigo.ID_Us) {
+    // Si no hay amigo seleccionado ni grupo
+    if (!amigo || (!amigo.ID_Us && !amigo.esGrupo)) {
         return (
             <div className="chat-header">
                 <div className="user-info">
@@ -53,8 +56,9 @@ function ChatHeader({abrirInfo, amigo}){
         </svg>
     )
 
+    // Monitoreo de estado online solo si es un usuario individual (no para grupos)
     useEffect(() => {
-        if (!amigo?.ID_Us) return
+        if (!amigo || amigo.esGrupo || !amigo.ID_Us) return
 
         const handleStatus = (status) => {
             setActivo(status === "online")
@@ -69,15 +73,22 @@ function ChatHeader({abrirInfo, amigo}){
         return () => {
             socket.off(`user_status_${amigo.ID_Us}`, handleStatus)
         }
-    }, [amigo?.ID_Us])
+    }, [amigo])
     
     return(
         <>
             <div className="chat-header">
-                
+
+                {/* Botón de volver — solo visible en móvil */}
+                {onVolver && (
+                    <button className="btn-volver-mobile" onClick={onVolver} aria-label="Volver">
+                        ←
+                    </button>
+                )}
+
                 <div className="user-info">
                     {fotoAmigo ? (
-                        <img src={fotoAmigo} alt="Img_User" onClick={abrirInfo} />
+                        <img src={fotoAmigo} alt="Img_User" onClick={abrirInfo} style={{cursor: "pointer"}} />
                     ) : (
                         <div onClick={abrirInfo} style={{cursor: "pointer"}}>
                             <AvatarDefault/>
@@ -85,35 +96,30 @@ function ChatHeader({abrirInfo, amigo}){
                     )}
 
                     <div>
-                        <h3>{amigo.NombreUsuario || "Usuario"}</h3>
-                        <span className="status" style={{color: activo ? "#4CAF50" : "#aaa"}}>
-                            {activo ? "● Activo" : "○ Desconectado"}
+                        <h3>{amigo.esGrupo ? amigo.nombreGrupo : (amigo.NombreUsuario || "Usuario")}</h3>
+                        <span className="status" style={{color: amigo.esGrupo ? "#a8a5e6" : (activo ? "#4CAF50" : "#aaa")}}>
+                            {amigo.esGrupo ? "Grupo" : (activo ? "● Activo" : "○ Desconectado")}
                         </span>
                     </div>
 
                 </div>
 
-                <div className="icons">
-                    <img src={LlamarIcon} alt="llamada" 
-                    onClick={()=>setMostrarAlert(true)} />
+                {!amigo.esGrupo && (
+                    <div className="icons">
+                        <img src={LlamarIcon} alt="llamada" 
+                        onClick={() => onIniciarLlamada && onIniciarLlamada("audio")} 
+                        style={{ cursor: "pointer" }} />
 
-                    <img src={VidLlamadaIcon} alt="video llamada"
-                    onClick={()=>setMostrarAlert(true)} />
-
-                    {/* <img src={BuscarIcon} alt="buscarMensaje" /> */}
-                </div>
+                        <img src={VidLlamadaIcon} alt="video llamada"
+                        onClick={() => onIniciarLlamada && onIniciarLlamada("video")} 
+                        style={{ cursor: "pointer" }} />
+                    </div>
+                )}
 
             </div>
-
-            {mostrarAlert &&(
-                <Alert
-                    Titulo="Llamando..."
-                    mensaje="Llamando a este usuario..."
-                    cerrar={()=>setMostrarAlert(false)}
-                />
-            )}
         </>
     )
 }
+
 
 export default ChatHeader

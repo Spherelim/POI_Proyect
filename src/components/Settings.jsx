@@ -1,5 +1,7 @@
 import "./Settings.css"
 import { useState, useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
+import Alert from "./Alert"
 
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 import BannerDefault from "/src/assets/images/Banner 3.png"
@@ -7,7 +9,9 @@ import BannerDefault from "/src/assets/images/Banner 3.png"
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function Settings() {
+    const navigate = useNavigate()
     const usuarioActual = JSON.parse(localStorage.getItem("usuario"))
+    const [mostrarAlert, setMostrarAlert] = useState(false)
     const [userData, setUserData] = useState({
         nombreUsuario: "",
         nombreCompleto: "",
@@ -180,6 +184,11 @@ function Settings() {
         }
     }
 
+    const handleConfirmLogout = () => {
+        localStorage.removeItem("usuario")
+        navigate("/Login")
+    }
+
     if (loading) {
         return <div className="SettingsContainer">Cargando...</div>
     }
@@ -311,6 +320,24 @@ function Settings() {
                     </div>
                 </div>
 
+                {/* Gestión de Cuenta */}
+                <div className="SettingsCard">
+                    <div className="SettingsTitle" style={{ color: "#e74c3c" }}>
+                        <span>🔒</span>
+                        <span>Sesión de Usuario</span>
+                    </div>
+                    <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", margin: "0 0 15px 0" }}>
+                        Al cerrar sesión se eliminarán tus credenciales guardadas localmente y serás redirigido a la pantalla de inicio de sesión.
+                    </p>
+                    <button 
+                        type="button" 
+                        className="LogoutButton"
+                        onClick={() => setMostrarAlert(true)}
+                    >
+                        Cerrar Sesión
+                    </button>
+                </div>
+
                 {/* Botones */}
                 <div className="ButtonGroup">
                     <button 
@@ -329,6 +356,15 @@ function Settings() {
                     </button>
                 </div>
             </form>
+
+            {mostrarAlert && (
+                <Alert
+                    Titulo="¿Cerrar Sesión?"
+                    mensaje="¿Estás seguro de que deseas cerrar tu sesión? Tendrás que volver a ingresar tus credenciales."
+                    cerrar={() => setMostrarAlert(false)}
+                    onConfirm={handleConfirmLogout}
+                />
+            )}
         </div>
     )
 }

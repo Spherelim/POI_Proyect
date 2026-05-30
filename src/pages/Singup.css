@@ -1,39 +1,157 @@
-.Image-Wrapper-Registro{
+/* ══════════════════════════════════════════════
+   Singup.css — Mejorado visual sin cambiar estructura
+   Hereda .Content de Login.css vía misma clase
+   ══════════════════════════════════════════════ */
+
+@font-face {
+    font-family: "MundiFont";
+    src: url("../assets/fonts/ConcertOne-Regular.ttf");
+}
+
+.Image-Wrapper-Registro {
     position: relative;
+    min-height: 100dvh;
     overflow: hidden;
 }
 
-.Imagen-Fondo-Registro{
-     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+.Imagen-Fondo-Registro {
+    position: absolute;
+    inset: 0;
     background-image: url("../assets/images/Fondo 1.png");
     background-size: cover;
     background-position: center;
-    opacity: 0.05;
+    opacity: 0.07;
     z-index: 0;
 }
 
 .Sing {
-    min-height: 100dvh;         
+    min-height: 100dvh;
     display: flex;
     justify-content: center;
-    align-items: center;         
-    padding: 40px 20px;          
-    box-sizing: border-box;      
+    align-items: center;
+    padding: 32px 16px;
+    box-sizing: border-box;
+    background: linear-gradient(160deg, #1a2340 0%, #293961 45%, #5474C7 100%);
 }
 
-.Content p{
-    margin: 0%;
-    margin-top: 10px;
-    user-select: none;
+/* Card glassmorphism — misma estructura que Login */
+.Content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(400px, 100%);
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 24px;
+    padding: 48px 32px 40px;
+    z-index: 1;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+    backdrop-filter: blur(12px);
 }
 
-.Btn-Registrar{
-    width: 150px;
-    background-color: #fff;
-    color: #394460;
-    font-size: 20px;
+.Btn-Cerrar {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    transition: all 0.25s ease;
+    padding: 0;
 }
+
+.Btn-Cerrar:hover {
+    background: rgba(231,76,60,0.7);
+    border-color: transparent;
+    transform: rotate(90deg);
+}
+
+/* Inputs */
+.Content input {
+    margin: 6px 0;
+    width: 100%;
+    padding: 11px 18px;
+    border-radius: 50px;
+    border: 1px solid rgba(255,255,255,0.2);
+    font-size: 14px;
+    box-sizing: border-box;
+    background: rgba(255,255,255,0.12);
+    color: white;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    text-align: left;
+}
+
+.Content input::placeholder { color: rgba(255,255,255,0.55); }
+
+.Content input:focus {
+    border-color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.18);
+}
+
+.Content input[type="date"] { color-scheme: dark; }
+
+
+.Registrar {
+    font-family: "MundiFont", sans-serif;
+    font-size: clamp(32px, 8vw, 50px);
+    color: white;
+    margin: 0 0 22px;
+    line-height: 1;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+/* Texto de label (Fecha de Nacimiento) */
+.Content p {
+    margin: 8px 0 2px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+    align-self: flex-start;
+    padding-left: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Input de fecha — el color del texto del sistema puede ser distinto */
+.Content input[type="date"] {
+    color-scheme: dark;
+}
+
+/* Botón de registro */
+.Btn-Registrar {
+    margin-top: 18px;
+    width: 100%;
+    background: white;
+    color: #293961;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 13px 20px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+}
+
+.Btn-Registrar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(0,0,0,0.35);
+}
+
+.Btn-Registrar:active { transform: translateY(0); }

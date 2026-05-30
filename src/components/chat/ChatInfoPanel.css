@@ -1,24 +1,43 @@
-.chat-info-panel{
-    width: 320px;
-    height: 100vh;
+/* ══════════════════════════════════════════════
+   ChatInfoPanel.css — Panel lateral de información
+   ══════════════════════════════════════════════ */
+.chat-info-panel {
+    width: var(--info-panel-w, 300px);
+    height: 100%;
+    min-height: 0;
 
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
-    background: linear-gradient(#5b6f94,#7c91bb);
+    background: linear-gradient(#5b6f94, #7c91bb);
+    flex-shrink: 0;
 
-    /* Honestamente no me gusta, pero es interesante tenerlo ahí */
-    animation: slideInfo 0.3s ease;
+    animation: slideInfo 0.28s cubic-bezier(0.16,1,0.3,1);
 }
 
+/* Sección de contenido scrollable — ocupa el espacio que queda bajo el header */
+.info-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+}
 
-/* Luego cunado lo cierras es muy brusco asi que...
-despues vemos como le hacemos */
-@keyframes slideInfo{
-    from{
-        transform: translateX(100%);
-    }
-    to{
-        transform: rotateX(0);
+.info-body::-webkit-scrollbar { width: 4px; }
+.info-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+@keyframes slideInfo {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);   opacity: 1; }
+}
+
+/* ── Responsive ─────────────────────────────── */
+@media (max-width: 900px) {
+    .chat-info-panel {
+        width: min(300px, 85vw);
+        box-shadow: -4px 0 20px rgba(0,0,0,0.4);
     }
 }

@@ -1,0 +1,372 @@
+.Perfil-Grupo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding: 0 12px 30px 12px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+.banner-wrapper {
+    width: 100%;
+    position: relative;
+    margin-top: 15px;
+}
+
+.banner-g {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    display: block;
+}
+
+.btn-cambiar-banner {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.55);
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+}
+
+.btn-cambiar-banner:hover {
+    background: rgba(0,0,0,0.8);
+}
+
+.avatar-wrapper {
+    position: relative;
+    margin-top: -45px;
+    margin-bottom: 8px;
+    z-index: 1;
+}
+
+.avatar-g {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 4px solid #1a1c29;
+    object-fit: cover;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    display: block;
+    transition: opacity 0.2s;
+}
+
+.avatar-g:hover {
+    opacity: 0.85;
+}
+
+.avatar-edit-hint {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: #6c5ce7;
+    color: white;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    border: 2px solid #1a1c29;
+    transition: background 0.2s;
+}
+
+.avatar-edit-hint:hover {
+    background: #5b4dbf;
+}
+
+.input-nombre-grupo {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    padding: 6px 12px;
+    outline: none;
+    width: 90%;
+    margin-top: 8px;
+    margin-bottom: 2px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.input-nombre-grupo:focus {
+    border-color: #a8a5e6;
+    background: rgba(255,255,255,0.15);
+}
+
+.edit-group-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    width: 100%;
+    justify-content: center;
+}
+
+.btn-editar-grupo {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.btn-editar-grupo:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+}
+
+.btn-guardar-grupo {
+    background: linear-gradient(135deg, #6c5ce7, #a8a5e6);
+    color: white;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    box-shadow: 0 4px 10px rgba(108,92,231,0.3);
+}
+
+.btn-guardar-grupo:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.btn-guardar-grupo:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-cancelar-edicion {
+    background: rgba(231,76,60,0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231,76,60,0.3);
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-cancelar-edicion:hover:not(:disabled) {
+    background: rgba(231,76,60,0.3);
+}
+
+
+.NombreGrupoText {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-top: 60px;
+    margin-bottom: 2px;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.DescripGrupo {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.admin-actions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.btn-add-member {
+    background: linear-gradient(135deg, #6c5ce7, #a8a5e6);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3);
+}
+
+.btn-add-member:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(108, 92, 231, 0.5);
+}
+
+.agregar-miembro-panel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px;
+    width: 100%;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.form-agregar {
+    display: flex;
+    gap: 10px;
+}
+
+.select-amigo {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    outline: none;
+}
+
+.select-amigo option {
+    background: #1a1c29;
+    color: white;
+}
+
+.btn-confirm-add {
+    background: #2ecc71;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-confirm-add:hover {
+    background: #27ae60;
+}
+
+.miembros-section {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.miembros-section h4 {
+    color: #ffffff;
+    font-size: 15px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 6px;
+}
+
+.miembros-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.miembro-card {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 8px 12px;
+    gap: 10px;
+}
+
+.miembro-card img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.miembro-info {
+    flex: 1;
+}
+
+.miembro-info p {
+    margin: 0;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.miembro-tag {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.miembro-acciones {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-rol {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: none;
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn-rol:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-delete {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+}
+
+.btn-delete:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-salir-grupo {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    width: 100%;
+    margin-top: 25px;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.2);
+    transition: background 0.2s, transform 0.2s;
+}
+
+.btn-salir-grupo:hover {
+    background: #c0392b;
+    transform: translateY(-1px);
+}
