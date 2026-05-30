@@ -1454,6 +1454,73 @@ app.get("/inventario/:idUsuario", (req, res) => {
     })
 })
 
+// Agregados - Equipar/Desequipar ítems
+
+// Equipar un ítem (y desequipar otros del mismo tipo si se desea)
+app.put("/usuario/equipar", (req, res) => {
+    const { idUsuario, idItem } = req.body;
+
+    // Primero obtener el tipo del ítem a equipar
+    const sqlTipo = "SELECT Tipo FROM item WHERE ID_Item = ?";
+    db.query(sqlTipo, [idItem], (err, resultTipo) => {
+        if (err || resultTipo.length === 0) return res.status(500).json({ error: "Error al obtener tipo del ítem" });
+
+        const tipo = resultTipo[0].Tipo;
+
+        // Desequipar cualquier otro ítem del mismo tipo que esté equipado actualmente
+        const sqlUnequip = `
+            UPDATE usuario_item ui
+            INNER JOIN item i ON ui.id_item = i.ID_Item
+            SET ui.Equipado = 0
+            WHERE ui.id_usuario = ? AND i.Tipo = ? AND ui.id_item != ?
+        `;
+        db.query(sqlUnequip, [idUsuario, tipo, idItem], (err) => {
+            if (err) console.error("Error al desequipar otros:", err);
+
+            // Equipar el nuevo ítem
+            const sqlEquip = `
+                INSERT INTO usuario_item (id_usuario, id_item, Equipado)
+                VALUES (?, ?, 1)
+                ON DUPLICATE KEY UPDATE Equipado = 1
+            `;
+            db.query(sqlEquip, [idUsuario, idItem], (err2) => {
+                if (err2) return res.status(500).json({ error: "Error al equipar ítem" });
+                res.json({ message: "Ítem equipado correctamente", tipo });
+            });
+        });
+    });
+});
+
+// Desequipar un ítem (opcional, si se quiere quitar)
+app.put("/usuario/desequipar", (req, res) => {
+    const { idUsuario, idItem } = req.body;
+    const sql = "UPDATE usuario_item SET Equipado = 0 WHERE id_usuario = ? AND id_item = ?";
+    db.query(sql, [idUsuario, idItem], (err) => {
+        if (err) return res.status(500).json({ error: "Error al desequipar" });
+        res.json({ message: "Ítem desequipado" });
+    });
+});
+
+// Obtener ítems equipados de un usuario (uno por tipo)
+app.get("/usuario/personalizacion/:idUsuario", (req, res) => {
+    const { idUsuario } = req.params;
+    const sql = `
+        SELECT i.Tipo, i.Color_1, i.Color_2, i.Mosaico
+        FROM usuario_item ui
+        INNER JOIN item i ON ui.id_item = i.ID_Item
+        WHERE ui.id_usuario = ? AND ui.Equipado = 1
+    `;
+    db.query(sql, [idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener personalización" });
+        const personalizacion = {};
+        result.forEach(row => {
+            personalizacion[row.Tipo] = row;
+        });
+        res.json(personalizacion);
+    });
+});
+
+// agregados - Fin
 
 // Servir archivos estáticos de uploads
 app.use('/uploads', express.static(uploadDir))

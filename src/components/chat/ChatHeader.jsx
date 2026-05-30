@@ -9,12 +9,22 @@ import LlamarIcon from "/src/assets/icons/Llamada/llamada-telefonica 1 (w).png"
 import VidLlamadaIcon from "/src/assets/icons/Llamada/video-camara-alt (w).png"
 import BuscarIcon from "/src/assets/icons/busqueda (w).png"
 
+// Agregados
+import { usePersonalizacion } from "../../utils/personalizacion.js"
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 function ChatHeader({abrirInfo, amigo, onVolver, onIniciarLlamada}){
 
     const [activo, setActivo] = useState(false)
     const [fotoAmigo, setFotoAmigo] = useState(null)
+
+    //Agregados - Personalización
+    const { personalizacion } = usePersonalizacion(amigo?.ID_Us)
+    const marco = personalizacion?.marco
+    const borderStyle = marco 
+        ? `2px solid transparent; background: linear-gradient(white, white) padding-box, linear-gradient(135deg, ${marco.Color_1 || '#ccc'}, ${marco.Color_2 || '#ccc'}) border-box;`
+        : '2px solid white'
 
     // Cargar foto del amigo o grupo cuando cambia
     useEffect(() => {
@@ -88,7 +98,7 @@ function ChatHeader({abrirInfo, amigo, onVolver, onIniciarLlamada}){
 
                 <div className="user-info">
                     {fotoAmigo ? (
-                        <img src={fotoAmigo} alt="Img_User" onClick={abrirInfo} style={{cursor: "pointer"}} />
+                        <img src={fotoAmigo} alt="Img_User" onClick={abrirInfo} style={{cursor: "pointer", border: borderStyle}} />
                     ) : (
                         <div onClick={abrirInfo} style={{cursor: "pointer"}}>
                             <AvatarDefault/>

@@ -35,11 +35,16 @@ function Settings() {
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState({ text: "", type: "" })
 
+    // Agregados - Referencias para inputs de archivos
+    const [inventario, setInventario] = useState([]);
+    const [cargandoInventario, setCargandoInventario] = useState(false);
+
     const fotoInputRef = useRef(null)
     const bannerInputRef = useRef(null)
 
     useEffect(() => {
         cargarDatosUsuario()
+        cargarInventario() // Agregados
     }, [])
 
     const cargarDatosUsuario = async () => {
@@ -131,6 +136,67 @@ function Settings() {
             reader.onerror = reject
         })
     }
+
+    // Agregados 
+    // Función para cargar inventario
+    const cargarInventario = async () => {
+        if (!usuarioActual?.id) return;
+        setCargandoInventario(true);
+        try {
+            const res = await fetch(`${API_URL}/inventario/${usuarioActual.id}`);
+            const data = await res.json();
+            setInventario(data);
+        } catch (error) {
+            console.error("Error cargando inventario:", error);
+            toast.error("No se pudo cargar tu inventario");
+        } finally {
+            setCargandoInventario(false);
+        }
+    };
+
+    // Función para equipar un ítem
+    const equiparItem = async (item) => {
+        try {
+            const res = await fetch(`${API_URL}/usuario/equipar`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idUsuario: usuarioActual.id, idItem: item.ID_Item })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success(`¡${item.Nombre} equipado!`);
+                // Recargar inventario para actualizar estados
+                await cargarInventario();
+            } else {
+                toast.error(data.error || "Error al equipar");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error de conexión");
+        }
+    };
+
+    // Función para desequipar (opcional)
+    const desequiparItem = async (item) => {
+        try {
+            const res = await fetch(`${API_URL}/usuario/desequipar`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idUsuario: usuarioActual.id, idItem: item.ID_Item })
+            });
+            if (res.ok) {
+                toast.success(`Ítem desequipado`);
+                await cargarInventario();
+            } else {
+                toast.error("Error al desequipar");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Error de conexión");
+        }
+    };
+
+    // Agregados - Fin
 
     const handleFotoChange = async (e) => {
         const file = e.target.files[0]
@@ -242,6 +308,13 @@ function Settings() {
         navigate("/Login")
     }
 
+    //Agregados - Personalización en ChatHeader
+    const getMosaicoUrl = (path) => {
+        if (!path) return '';
+        if (path.startsWith('http')) return path;
+        return `/${path}`;
+    };
+
     if (loading) {
         return <div className="SettingsContainer"><p style={{ color: "white", textAlign: "center", paddingTop: 40 }}>Cargando...</p></div>
     }
@@ -294,6 +367,45 @@ function Settings() {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                {/* ── Personalización (Inventario) ───────────────── */}
+                <div className="SettingsCard">
+                    <div className="SettingsTitle">Personalización</div>
+                    {cargandoInventario ? (
+                        <p style={{ color: "#94a3b8", textAlign: "center" }}>Cargando tus objetos...</p>
+                    ) : inventario.length === 0 ? (
+                        <p style={{ color: "#cbd5e1", textAlign: "center" }}>Aún no has comprado nada. Visita la tienda para obtener objetos exclusivos.</p>
+                    ) : (
+                        <div className="inventario-grid">
+                            {inventario.map(item => {
+                                const isEquipped = item.Equipado === 1;
+                                // Previsualización según tipo (similar a la tienda)
+                                let preview = null;
+                                if (item.Tipo === 'color') {
+                                    preview = <div className="preview-color-mini" style={{ background: `linear-gradient(135deg, ${item.Color_1 || '#ccc'}, ${item.Color_2 || '#888'})` }} />;
+                                } else if (item.Tipo === 'marco') {
+                                    preview = <div className="preview-marco-mini" style={{ border: `3px solid transparent`, background: `linear-gradient(white, white) padding-box, linear-gradient(135deg, ${item.Color_1 || '#FFD700'}, ${item.Color_2 || '#FFA500'}) border-box` }} />;
+                                } else if (item.Tipo === 'mosaico') {
+                                    preview = <div className="preview-mosaico-mini" style={{ backgroundImage: `url(${getMosaicoUrl(item.Mosaico)})`, backgroundSize: 'cover' }} />;
+                                }
+                                return (
+                                    <div key={item.ID_Item} className="inventario-item">
+                                        <div className="inventario-preview">{preview || <span className="item-emoji-mini">🎁</span>}</div>
+                                        <div className="inventario-info">
+                                            <strong>{item.Nombre}</strong>
+                                            <span className="item-tipo-mini">{item.Tipo}</span>
+                                        </div>
+                                        {isEquipped ? (
+                                            <button className="btn-equipado" onClick={() => desequiparItem(item)}>Equipado ✓</button>
+                                        ) : (
+                                            <button className="btn-equipar" onClick={() => equiparItem(item)}>Equipar</button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* ── Información Personal ──────────────────── */}

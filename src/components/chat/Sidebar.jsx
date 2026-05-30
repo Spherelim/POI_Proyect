@@ -168,6 +168,7 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
                             ultmsg="Toca para chatear"
                             time=""
                             esFavorito={amigo.esFavorito}
+                            idAmigo={amigo.ID_Us}
                             abrirChat={() => handleSeleccionarAmigo(amigo)}
                         />
                     ))
