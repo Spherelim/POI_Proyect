@@ -1,3 +1,8 @@
+@font-face {
+    font-family: "MundiFont";
+    src: url("../assets/fonts/ConcertOne-Regular.ttf");
+}
+
 /* ─── Contenedor del Modal ─── */
 .Container_Msg {
     position: fixed;
@@ -31,20 +36,20 @@
 
 /* ─── Títulos y Textos ─── */
 .Message h2 {
-    font-size: 19px;
+    font-size: 20px;
     font-weight: 700;
     color: #fca5a5;
     margin-bottom: 12px;
     letter-spacing: 0.02em;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: "MundiFont", sans-serif !important;
 }
 
 .Message p {
-    font-size: 14px;
+    font-size: 15px;
     color: #cbd5e1;
     line-height: 1.5;
     margin-bottom: 24px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: "MundiFont", sans-serif !important;
 }
 
 /* ─── Contenedor de Botones ─── */
@@ -59,8 +64,8 @@
     padding: 10px 22px;
     border-radius: 24px;
     cursor: pointer;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 14px;
+    font-family: "MundiFont", sans-serif !important;
+    font-size: 14.5px;
     font-weight: 600;
     transition: all 0.2s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);

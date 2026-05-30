@@ -6,7 +6,12 @@
     color: #e2e8f0;
 }
 
-/* Forzar tipografía nítida sin resplandores ni fuentes toscas en todo Ajustes */
+@font-face {
+    font-family: "MundiFont";
+    src: url("../assets/fonts/ConcertOne-Regular.ttf");
+}
+
+/* Forzar la tipografía ConcertOne-Regular del proyecto sin resplandores molestos */
 .SettingsContainer,
 .SettingsContainer *,
 .SettingsContainer label,
@@ -16,7 +21,7 @@
 .SettingsContainer span,
 .SettingsContainer p,
 .SettingsContainer div {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    font-family: "MundiFont", sans-serif !important;
     text-shadow: none !important;
 }
 
