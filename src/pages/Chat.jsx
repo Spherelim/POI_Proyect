@@ -525,7 +525,7 @@ function Chat(){
             const data = await res.json()
             console.log("Mensajes recibidos:", data)
             const formateados = data.map(m => ({
-                text: m.mensaje,
+                text: desencriptar(m.mensaje), // Siempre descifrar al cargar (si no está cifrado, desencriptar() devuelve el mismo texto)
                 type: String(m.id_remitente) === String(usuario?.id) ? "right" : "left",
                 senderName: activo.esGrupo ? (m.NombreUsuario || m.nombreUsuario) : null,
                 tipo: m.tipo || "texto",
@@ -542,19 +542,19 @@ function Chat(){
         socket.on("mensaje", (data) => {
             console.log("Mensaje recibido por socket:", data)
             const amigoActual = amigoActivoRef.current
-            
-            // Descifrar si viene encriptado para mostrarlo en el Toast/Mensaje
+
+            // Siempre descifrar antes de mostrar en UI (si no está cifrado, desencriptar() lo devuelve igual)
             const textoLimpio = desencriptar(data.text)
 
             if (amigoActual && !amigoActual.esGrupo && String(data.idEmisor) === String(amigoActual.ID_Us)) {
-                setMensajes(prev => [...prev, { 
-                    text: data.text, 
+                setMensajes(prev => [...prev, {
+                    text: textoLimpio,  // Guardamos siempre en claro
                     type: "left",
                     tipo: data.tipo || "texto",
                     archivo: data.archivo || null
                 }])
             } else {
-                // Notificar en Toast de forma elegante
+                // Notificar en Toast siempre en claro
                 const contenidoMostrar = data.tipo === "imagen" ? "🖼️ Imagen" : data.tipo === "archivo" ? "📎 Archivo" : textoLimpio
                 toast.info(`✉️ Nuevo mensaje de ${data.nombreEmisor || "un contacto"}: "${contenidoMostrar}"`)
             }
@@ -564,14 +564,14 @@ function Chat(){
         socket.on("mensaje_grupo", (data) => {
             console.log("Mensaje grupal recibido por socket:", data)
             const amigoActual = amigoActivoRef.current
-            
-            // Descifrar si viene encriptado
+
+            // Siempre descifrar antes de mostrar
             const textoLimpio = desencriptar(data.text)
 
             if (amigoActual && amigoActual.esGrupo && String(data.idConversacion) === String(amigoActual.ID_Conversacion)) {
-                setMensajes(prev => [...prev, { 
-                    text: data.text, 
-                    type: "left", 
+                setMensajes(prev => [...prev, {
+                    text: textoLimpio,  // Guardamos siempre en claro
+                    type: "left",
                     senderName: data.nombreEmisor,
                     tipo: data.tipo || "texto",
                     archivo: data.archivo || null
@@ -785,9 +785,10 @@ function Chat(){
     const enviarMensaje = async () => {
         if (mensaje.trim() === "" || !amigoActivo) return
 
-        // Si la encriptación está activa, encriptar el mensaje. Si no, mandarlo plano.
+        // textoEnviar: va cifrado a la BD y al socket (si cifrado activo)
+        // El texto en claro (mensaje) se muestra en la UI del emisor
         const textoEnviar = encriptarMensajes ? encriptar(mensaje) : mensaje
-        const mensajeParaMi = encriptarMensajes ? encriptar(mensaje) : mensaje
+        const textoParaMostrar = mensaje // La UI siempre muestra en claro
         setMensaje("")
 
         try {
@@ -810,7 +811,7 @@ function Chat(){
                     nombreGrupo: amigoActivo.nombreGrupo
                 })
 
-                setMensajes(prev => [...prev, { text: mensajeParaMi, type: "right", tipo: "texto" }])
+                setMensajes(prev => [...prev, { text: textoParaMostrar, type: "right", tipo: "texto" }])
             } else {
                 await fetch(`${API_URL}/mensajes/enviar`, {
                     method: "POST",
@@ -818,18 +819,18 @@ function Chat(){
                     body: JSON.stringify({
                         idEmisor: usuario.id,
                         idReceptor: amigoActivo.ID_Us,
-                        contenido: textoEnviar
+                        contenido: textoEnviar // Cifrado si activo
                     })
                 })
 
                 socket.emit("mensaje", {
-                    text: textoEnviar,
+                    text: textoEnviar, // El receptor lo descifra al recibirlo
                     idEmisor: usuario.id,
                     idReceptor: amigoActivo.ID_Us,
                     nombreEmisor: usuario.nombreUsuario || usuario.NombreUsuario
                 })
 
-                setMensajes(prev => [...prev, { text: mensajeParaMi, type: "right", tipo: "texto" }])
+                setMensajes(prev => [...prev, { text: textoParaMostrar, type: "right", tipo: "texto" }])
             }
         } catch (error) {
             console.error("Error enviando mensaje:", error)
@@ -991,7 +992,7 @@ function Chat(){
                                         mensajes.map((msg, index) => (
                                             <Message
                                                 key={index}
-                                                text={encriptarMensajes ? desencriptar(msg.text) : msg.text}
+                                                text={desencriptar(msg.text)}
                                                 type={msg.type}
                                                 senderName={msg.senderName}
                                                 tipo={msg.tipo}
