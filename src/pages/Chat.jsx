@@ -26,9 +26,14 @@ function Chat(){
     const [mensaje, setMensaje] = useState("")
     const [mensajes, setMensajes] = useState([])
     const mensajesEndRef = useRef(null)
+    const mensajesContainerRef = useRef(null)
     const [actualizarSidebar, setActualizarSidebar] = useState(0)
+    const [sidebarVisible, setSidebarVisible] = useState(true)
 
     const prevGrupoRef = useRef(null)
+
+    // Detectar móvil
+    const isMobile = () => window.innerWidth <= 640
 
     useEffect(() => {
         amigoActivoRef.current = amigoActivo
@@ -36,7 +41,10 @@ function Chat(){
     }, [amigoActivo])
 
     useEffect(() => {
-        mensajesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+        // Scroll directo al contenedor para evitar que scrollIntoView mueva el document
+        if (mensajesContainerRef.current) {
+            mensajesContainerRef.current.scrollTop = mensajesContainerRef.current.scrollHeight
+        }
     }, [mensajes])
 
     useEffect(() => {
@@ -80,6 +88,41 @@ function Chat(){
         console.log("Registrando usuario en socket:", usuario?.id)
         if (usuario?.id) {
             socket.emit("registrar", usuario.id)
+        }
+
+        // ── Actualizaciones en tiempo real de grupos ──────────────────
+        // Nuevo grupo creado o agregado a uno — refrescar sidebar
+        const onGrupoCreado = () => {
+            setActualizarSidebar(prev => prev + 1)
+        }
+
+        // Cambio en el grupo activo (rol, miembros) — refrescar panel info
+        const onGrupoActualizado = ({ idConversacion, idMiembro }) => {
+            setActualizarSidebar(prev => prev + 1)
+            // Si estamos viendo ese grupo, forzar recarga del panel
+            if (amigoActivoRef.current?.ID_Conversacion === idConversacion) {
+                // Actualizar la referencia para disparar el useEffect de amigoActivo
+                setAmigoActivo(prev => prev ? { ...prev } : prev)
+            }
+        }
+
+        // Expulsado del grupo — cerrar vista del grupo
+        const onExpulsadoGrupo = ({ idConversacion }) => {
+            setActualizarSidebar(prev => prev + 1)
+            if (amigoActivoRef.current?.ID_Conversacion === idConversacion) {
+                setAmigoActivo(null)
+                setMostrarInfo(false)
+            }
+        }
+
+        socket.on("grupo_creado", onGrupoCreado)
+        socket.on("grupo_actualizado", onGrupoActualizado)
+        socket.on("expulsado_grupo", onExpulsadoGrupo)
+
+        return () => {
+            socket.off("grupo_creado", onGrupoCreado)
+            socket.off("grupo_actualizado", onGrupoActualizado)
+            socket.off("expulsado_grupo", onExpulsadoGrupo)
         }
     }, [])
 
@@ -195,6 +238,20 @@ function Chat(){
         console.log("Seleccionando amigo en Chat:", amigo)
         setAmigoActivo(amigo)
         setVista("chat")
+        // En móvil ocultar sidebar al seleccionar chat
+        if (isMobile()) setSidebarVisible(false)
+    }
+
+    const handleCambiarVista = (vista) => {
+        setVista(vista)
+        // En móvil: ocultar sidebar para ver el contenido
+        if (isMobile()) setSidebarVisible(false)
+    }
+
+    const handleVolverSidebar = () => {
+        setSidebarVisible(true)
+        setAmigoActivo(null)
+        setMostrarInfo(false)
     }
 
     const VistaGenerica = ({ titulo, children }) => (
@@ -206,17 +263,27 @@ function Chat(){
         position: "relative"
     }}>
         <div className="chat-header" style={{
-            justifyContent: "center", 
+            justifyContent: "space-between",
             flexShrink: 0,
             position: "sticky",
             top: 0,
             zIndex: 2
         }}>
-            <h3 style={{margin: 0, color: "white"}}>{titulo}</h3>
+            {/* Botón volver en móvil */}
+            <button
+                className="btn-volver-mobile"
+                onClick={() => { setVista("chat"); setSidebarVisible(true) }}
+                aria-label="Volver"
+                style={{display: "flex"}}
+            >
+                ←
+            </button>
+            <h3 style={{margin: 0, color: "white", flex: 1, textAlign: "center"}}>{titulo}</h3>
+            <div style={{width: 36}}/>{/* espaciador para centrar titulo */}
         </div>
         <div style={{
-            flex: 1, 
-            minHeight: 0, 
+            flex: 1,
+            minHeight: 0,
             overflow: "auto",
             position: "relative"
         }}>
@@ -254,10 +321,11 @@ function Chat(){
     return (
         <div className="Content-Chat">
             <Sidebar
-                cambiarVista={setVista}
+                cambiarVista={handleCambiarVista}
                 abrirSolicitudes={() => setMostrarSolicitudes(true)}
                 seleccionarAmigo={handleSeleccionarAmigo}
                 actualizarSidebar={actualizarSidebar}
+                className={sidebarVisible ? "" : "oculto"}
             />
 
             <div className="Chat-area">
@@ -266,8 +334,12 @@ function Chat(){
                     <>
                         {amigoActivo ? (
                             <>
-                                <ChatHeader abrirInfo={() => setMostrarInfo(true)} amigo={amigoActivo}/>
-                                <div className="chat-messages">
+                                <ChatHeader
+                                    abrirInfo={() => setMostrarInfo(true)}
+                                    amigo={amigoActivo}
+                                    onVolver={handleVolverSidebar}
+                                />
+                                <div className="chat-messages" ref={mensajesContainerRef}>
                                     {mensajes.length === 0 ? (
                                         <p style={{color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:"20px"}}>
                                             No hay mensajes aún. ¡Envía uno!

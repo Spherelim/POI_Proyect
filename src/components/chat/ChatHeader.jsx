@@ -11,7 +11,7 @@ import BuscarIcon from "/src/assets/icons/busqueda (w).png"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function ChatHeader({abrirInfo, amigo}){
+function ChatHeader({abrirInfo, amigo, onVolver}){
 
     const [mostrarAlert, setMostrarAlert] = useState(false)
     const [activo, setActivo] = useState(false)
@@ -79,7 +79,14 @@ function ChatHeader({abrirInfo, amigo}){
     return(
         <>
             <div className="chat-header">
-                
+
+                {/* Botón de volver — solo visible en móvil */}
+                {onVolver && (
+                    <button className="btn-volver-mobile" onClick={onVolver} aria-label="Volver">
+                        ←
+                    </button>
+                )}
+
                 <div className="user-info">
                     {fotoAmigo ? (
                         <img src={fotoAmigo} alt="Img_User" onClick={abrirInfo} style={{cursor: "pointer"}} />

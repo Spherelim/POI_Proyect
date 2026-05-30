@@ -59,20 +59,22 @@ function Login(){
                         aria-label="Regresar a inicio">✕
                     </button>
 
-                    <h2>Login</h2>
+                    <h2 className="Registrar">Login</h2>
                     <input 
                         type="text" 
                         placeholder="Nombre de Usuario" 
                         value={nombre}
                         onChange={(e) => setNombre(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && Loguearse()}
                     />
                     <input 
                         type="password" 
                         placeholder="Contraseña" 
                         value={contrasena}
                         onChange={(e) => setContrasena(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && Loguearse()}
                     />
-                    <a onClick={()=>navigate("/Singup")}>No tienes una cuenta? Registrate.</a>
+                    <a onClick={()=>navigate("/Singup")}>¿No tienes cuenta? Regístrate.</a>
                     <button onClick={Loguearse}>Iniciar Sesión</button>
                 </div>
             </div>

@@ -1,76 +1,276 @@
-.Image-Wrapper{
-    position: relative;
-    height: 100vh;
-    overflow: hidden;
+/* ══════════════════════════════════════════════
+   Hero-Home.css — Landing page de MundiChat
+   Fuentes: ConcertOne (títulos) · Segoe UI (body)
+   Paleta: #293961 → #5474C7 → #768CC6
+   ══════════════════════════════════════════════ */
+
+@font-face {
+    font-family: "MundiFont";
+    src: url("../assets/fonts/ConcertOne-Regular.ttf");
 }
 
-.Imagen-Fondo{
-     position: absolute;
-    top: 0;
-    left: 0;
+/* ── Wrapper principal ───────────────────────── */
+.home-wrapper {
+    min-height: 100dvh;
     width: 100%;
-    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: linear-gradient(160deg, #1a2340 0%, #293961 40%, #5474C7 80%, #768CC6 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+/* Fondo de textura suave */
+.home-fondo {
+    position: fixed;
+    inset: 0;
     background-image: url("../assets/images/Fondo 1.png");
     background-size: cover;
     background-position: center;
-    opacity: 0.4;
+    opacity: 0.06;
+    pointer-events: none;
     z-index: 0;
 }
 
-.Bienvenida{
-    position: relative;
-    height: 80vh;
-    width: 70%;
-    margin: auto;
+/* Todo el contenido sobre el fondo */
+.home-wrapper > * { position: relative; z-index: 1; }
+
+/* ── HERO SECTION ────────────────────────────── */
+.hero-section {
     display: flex;
     flex-direction: column;
-
-    margin: auto;
-
-     background: rgba(0,0,0,0.75);
-    border-radius: 20px;
-    
-    justify-content: center;
     align-items: center;
-
     text-align: center;
-
-    padding: 60px;
-    z-index: 1;
+    padding: clamp(60px, 12vw, 120px) 24px clamp(50px, 8vw, 90px);
+    max-width: 700px;
+    width: 100%;
 }
 
-.Bienvenida h1{
-    font-size: 100px;
+.hero-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 6px 18px;
+    border-radius: 50px;
+    font-size: clamp(11px, 3vw, 13px);
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(4px);
+    animation: fadeDown 0.6s ease both;
+}
+
+.hero-title {
+    font-family: "MundiFont", sans-serif;
+    font-size: clamp(56px, 14vw, 110px);
+    line-height: 1;
+    margin: 0 0 24px;
     color: white;
-    margin: 0%;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    animation: fadeDown 0.7s ease 0.1s both;
 }
 
-
-.tagline{
-    width: 80%;
-    margin: 20px 0;
-    padding: 12px 100px;
-    font-size: 20px;
-    background: #d9d9d9bb;
-    border-radius: 40px;
+.hero-title span {
+    color: #a8c4f0;
+    text-shadow: 0 0 30px rgba(168,196,240,0.5);
 }
 
-.dev h2{
+.hero-sub {
+    font-size: clamp(14px, 3.5vw, 18px);
+    line-height: 1.65;
+    color: rgba(255,255,255,0.8);
+    margin: 0 0 36px;
+    max-width: 520px;
+    animation: fadeDown 0.8s ease 0.2s both;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeDown 0.9s ease 0.3s both;
+}
+
+/* ── Botones CTA ─────────────────────────────── */
+.btn-primary {
+    background: white;
+    color: #293961;
+    border: none;
+    padding: 13px 32px;
+    border-radius: 50px;
+    font-size: clamp(14px, 3.5vw, 16px);
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
+.btn-secondary {
+    background: rgba(255,255,255,0.12);
     color: white;
-    font-size: 20px;
-    margin-bottom: 20px;
+    border: 1.5px solid rgba(255,255,255,0.4);
+    padding: 13px 32px;
+    border-radius: 50px;
+    font-size: clamp(14px, 3.5vw, 16px);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    backdrop-filter: blur(4px);
 }
 
-.dev p{
+.btn-secondary:hover {
+    background: rgba(255,255,255,0.22);
+    transform: translateY(-2px);
+}
+
+/* ── FEATURES SECTION ────────────────────────── */
+.features-section {
+    width: 100%;
+    max-width: 900px;
+    padding: 0 24px clamp(50px, 8vw, 80px);
+}
+
+.section-title {
+    font-family: "MundiFont", sans-serif;
+    font-size: clamp(22px, 6vw, 34px);
+    text-align: center;
+    margin: 0 0 36px;
+    color: rgba(255,255,255,0.95);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+    gap: 18px;
+}
+
+.feature-card {
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 18px;
+    padding: 28px 22px;
+    text-align: center;
+    backdrop-filter: blur(6px);
+    transition: transform 0.25s, background 0.25s;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255,255,255,0.16);
+}
+
+.feature-icon {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 14px;
+}
+
+.feature-card h3 {
+    margin: 0 0 8px;
+    font-size: clamp(15px, 3.5vw, 17px);
+    font-weight: 700;
+}
+
+.feature-card p {
+    margin: 0;
+    font-size: clamp(12px, 3vw, 14px);
+    color: rgba(255,255,255,0.7);
+    line-height: 1.5;
+}
+
+/* ── DEVELOPERS SECTION ──────────────────────── */
+.devs-section {
+    width: 100%;
+    max-width: 680px;
+    padding: 0 24px clamp(50px, 8vw, 80px);
+}
+
+.devs-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dev-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 14px 18px;
+    transition: background 0.2s;
+}
+
+.dev-card:hover { background: rgba(255,255,255,0.14); }
+
+.dev-avatar {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5474C7, #293961);
+    border: 2px solid rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
     color: white;
-    font-size: 20px;
-    margin: 5px 0;
 }
 
-.start-btn{
-    transition: transform 0.2s;
+.dev-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-.start-btn:hover{
-    transform: scale(1.1);
+.dev-info strong {
+    font-size: clamp(13px, 3.5vw, 15px);
+    color: white;
+}
+
+.dev-rol {
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    width: fit-content;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.rol-frontend { background: rgba(116,163,242,0.35); color: #a8d4ff; }
+.rol-backend  { background: rgba(91,111,148,0.4);  color: #c8d8f0; }
+
+/* ── FOOTER ──────────────────────────────────── */
+.home-footer {
+    padding: 20px 24px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    width: 100%;
+}
+
+/* ── Animaciones ─────────────────────────────── */
+@keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ─────────────────────────────── */
+@media (max-width: 480px) {
+    .hero-actions { gap: 10px; }
+    .btn-primary, .btn-secondary { width: 100%; max-width: 300px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .dev-card { padding: 12px 14px; }
 }

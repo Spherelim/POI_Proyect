@@ -1,48 +1,56 @@
+/* ══════════════════════════════════════════════
+   ChatInput.css — Barra de escritura de mensajes
+   ══════════════════════════════════════════════ */
 @font-face {
     font-family: "Mundial";
     src: url("../assets/fonts/BowlbyOneSC-Regular.ttf");
 }
 
-.chat-input{
-    display:flex;
-    align-items:center;
-    padding:10px;
-    /* background: white; */
-}
-
-.chat-input{
+.chat-input {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 8px;
+    flex-shrink: 0;
     position: relative;
     z-index: 5;
-    flex-shrink: 0;
+    background: rgba(0,0,0,0.08);
+    border-top: 1px solid rgba(255,255,255,0.06);
 }
 
 .chat-input img {
-    width: 40px;
-    height: auto;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
     background: none;
     border: none;
-    font-size: 20px;
     cursor: pointer;
-    padding: 5px 10px;
-    color: #5b6f94;
-    transition: Transform 0.2s;
+    padding: 4px;
+    transition: transform 0.2s;
 }
 
-.chat-input img:hover{
-    transform: scale(1.1);
-}
+.chat-input img:hover { transform: scale(1.12); }
 
 .chat-input input {
-    font-family: "Mundial",sans-serif;
+    font-family: "Mundial", sans-serif;
     flex: 1;
-    margin: 0 10px;
-    padding: 10px 15px;
-    border-radius: 25px;
-    border: 1px solid #ddd;
+    min-width: 0;
+    padding: 10px 16px;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.2);
     outline: none;
     font-size: 14px;
+    background: rgba(255,255,255,0.9);
+    color: #333;
+    transition: border-color 0.2s;
 }
 
-.chat-input input:focus {
-    border-color: #5b6f94;
+.chat-input input:focus { border-color: #5b6f94; }
+.chat-input input::placeholder { color: #888; }
+
+/* ── Responsive ─────────────────────────────── */
+@media (max-width: 480px) {
+    .chat-input { padding: 8px 10px; }
+    .chat-input img { width: 30px; height: 30px; min-width: 30px; }
+    .chat-input input { padding: 9px 14px; font-size: 13px; }
 }

@@ -221,5 +221,38 @@
 
 .LogoutButton:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+    box-shadow: 0 5px 15px rgba(231,76,60,0.4);
+}
+
+/* ── Responsive adicional ────────────────────── */
+@media (max-width: 480px) {
+    .SettingsCard {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    .SettingsTitle {
+        font-size: 18px;
+    }
+
+    .ButtonGroup {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .SaveButton, .CancelButton, .LogoutButton {
+        width: 100%;
+        text-align: center;
+    }
+
+    .FormGroup input,
+    .FormGroup textarea {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .AvatarPreview {
+        width: 90px;
+        height: 90px;
+    }
 }

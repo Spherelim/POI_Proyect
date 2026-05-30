@@ -611,7 +611,15 @@ app.post("/grupos/crear", (req, res) => {
                 console.error("Error al insertar miembros del grupo:", err);
                 return res.status(500).json({ error: "Error al registrar miembros del grupo." });
             }
-            res.json({ message: "Grupo creado con éxito.", idConversacion: idCon });
+
+            const respuesta = { message: "Grupo creado con éxito.", idConversacion: idCon };
+            res.json(respuesta);
+
+            // Notificar en tiempo real a todos los participantes para que actualicen su sidebar
+            const todosIds = [idCreador, ...participantes];
+            todosIds.forEach(idUser => {
+                io.to(`user_${idUser}`).emit("grupo_creado", { idConversacion: idCon });
+            });
         });
     });
 });
@@ -757,6 +765,9 @@ app.post("/grupos/miembros/agregar", (req, res) => {
                     return res.status(500).json({ error: "Error al agregar miembro." });
                 }
                 res.json({ message: "Miembro agregado correctamente." });
+                // Notificar a todos en el grupo y al nuevo miembro
+                io.to(`grupo_${idConversacion}`).emit("grupo_actualizado", { idConversacion, tipo: "miembro_agregado" });
+                io.to(`user_${idNuevoMiembro}`).emit("grupo_creado", { idConversacion });
             });
         }
     });
@@ -811,6 +822,9 @@ app.post("/grupos/miembros/eliminar", (req, res) => {
             db.query(sqlDelete, [idConversacion, idMiembroEliminar], (err) => {
                 if (err) return res.status(500).json({ error: "Error al eliminar miembro." });
                 res.json({ message: "Miembro eliminado del grupo correctamente." });
+                // Notificar al grupo de la actualización
+                io.to(`grupo_${idConversacion}`).emit("grupo_actualizado", { idConversacion, tipo: "miembro_eliminado", idMiembro: idMiembroEliminar });
+                io.to(`user_${idMiembroEliminar}`).emit("expulsado_grupo", { idConversacion });
             });
         });
     });
@@ -843,6 +857,8 @@ app.post("/grupos/roles/cambiar", (req, res) => {
         db.query(sqlUpdate, [nuevoRol, idConversacion, idMiembro], (err) => {
             if (err) return res.status(500).json({ error: "Error al actualizar rol." });
             res.json({ message: `Rol actualizado a ${nuevoRol} correctamente.` });
+            // Notificar a todos en el grupo del cambio de rol
+            io.to(`grupo_${idConversacion}`).emit("grupo_actualizado", { idConversacion, tipo: "rol_cambiado" });
         });
     });
 });

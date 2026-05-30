@@ -7,7 +7,7 @@ import FotoDefault from "/src/assets/images/Conejito.jpg"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSidebar}){
+function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSidebar, className}){
 
     const usuario = JSON.parse(localStorage.getItem("usuario"))
     const [amigos, setAmigos] = useState([])
@@ -133,7 +133,7 @@ function Sidebar({cambiarVista, abrirSolicitudes, seleccionarAmigo, actualizarSi
     }
 
     return(
-        <div className="sidebar">
+        <div className={`sidebar${className ? ' ' + className : ''}`}>
             <PerfilCard cambiarVista={cambiarVista} abrirSolicitudes={abrirSolicitudes}/>
 
             {/* Selector de Sección */}
