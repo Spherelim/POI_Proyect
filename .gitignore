@@ -25,3 +25,10 @@ dist-ssr
 
 .env
 .env.production
+
+# Archivos subidos por usuarios (generados en runtime, no deben ir en git)
+server/uploads/
+uploads/
+
+# .env del servidor
+server/.env

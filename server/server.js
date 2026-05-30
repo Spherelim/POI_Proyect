@@ -1452,16 +1452,63 @@ io.on("connection", (socket) => {
         socket.to(`grupo_${data.idConversacion}`).emit("mensaje_grupo", data)
     })
 
-    socket.on("call-user", ({to, offer}) => {
-        io.to(to).emit("incoming-call", { from: socket.id, offer })
+    // --- EVENTOS SEÑALIZACIÓN WEBRTC (AUDIO Y VIDEOLLAMADA) ---
+    socket.on("webrtc-offer", (data) => {
+        console.log(`[WebRTC Server] Oferta recibida de: ${usuarioIdActual} para: ${data.to}. Tipo: ${data.tipo}. Emisor: ${data.nombreEmisor}`)
+        // data.to es el ID_Us del destinatario en la BD
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-offer", {
+            from: usuarioIdActual,
+            sdp: data.sdp,
+            tipo: data.tipo, // 'audio' o 'video'
+            nombreEmisor: data.nombreEmisor,
+            nombreReceptor: data.nombreReceptor
+        })
     })
 
-    socket.on("answer-call", ({to, answer}) => {
-        io.to(to).emit("call-answered", { answer })
+    socket.on("webrtc-answer", (data) => {
+        console.log(`[WebRTC Server] Respuesta (Answer) recibida de: ${usuarioIdActual} para: ${data.to}`)
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-answer", {
+            from: usuarioIdActual,
+            sdp: data.sdp
+        })
     })
 
-    socket.on("ice-candidate", ({to, candidate}) => {
-        io.to(to).emit("ice-candidate", candidate)
+    socket.on("webrtc-ice-candidate", (data) => {
+        console.log(`[WebRTC Server] Candidato ICE recibido de: ${usuarioIdActual} para: ${data.to}`)
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-ice-candidate", {
+            from: usuarioIdActual,
+            candidate: data.candidate
+        })
+    })
+
+    socket.on("webrtc-toggle-video", (data) => {
+        console.log(`[WebRTC Server] Video toggle de: ${usuarioIdActual} para: ${data.to}. Habilitado: ${data.enabled}`)
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-toggle-video", {
+            from: usuarioIdActual,
+            enabled: data.enabled
+        })
+    })
+
+    socket.on("webrtc-toggle-audio", (data) => {
+        console.log(`[WebRTC Server] Audio toggle de: ${usuarioIdActual} para: ${data.to}. Habilitado: ${data.enabled}`)
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-toggle-audio", {
+            from: usuarioIdActual,
+            enabled: data.enabled
+        })
+    })
+
+    socket.on("webrtc-hangup", (data) => {
+        console.log(`[WebRTC Server] Colgar (Hangup) recibido de: ${usuarioIdActual} para: ${data.to}`)
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-hangup", {
+            from: usuarioIdActual
+        })
+    })
+
+    socket.on("webrtc-busy", (data) => {
+        console.log(`[WebRTC Server] Destinatario ocupado: ${usuarioIdActual} para: ${data.to}`)
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-busy", {
+            from: usuarioIdActual
+        })
     })
 
     socket.on("disconnect", () => {

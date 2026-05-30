@@ -11,9 +11,8 @@ import BuscarIcon from "/src/assets/icons/busqueda (w).png"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function ChatHeader({abrirInfo, amigo, onVolver}){
+function ChatHeader({abrirInfo, amigo, onVolver, onIniciarLlamada}){
 
-    const [mostrarAlert, setMostrarAlert] = useState(false)
     const [activo, setActivo] = useState(false)
     const [fotoAmigo, setFotoAmigo] = useState(null)
 
@@ -108,24 +107,19 @@ function ChatHeader({abrirInfo, amigo, onVolver}){
                 {!amigo.esGrupo && (
                     <div className="icons">
                         <img src={LlamarIcon} alt="llamada" 
-                        onClick={()=>setMostrarAlert(true)} />
+                        onClick={() => onIniciarLlamada && onIniciarLlamada("audio")} 
+                        style={{ cursor: "pointer" }} />
 
                         <img src={VidLlamadaIcon} alt="video llamada"
-                        onClick={()=>setMostrarAlert(true)} />
+                        onClick={() => onIniciarLlamada && onIniciarLlamada("video")} 
+                        style={{ cursor: "pointer" }} />
                     </div>
                 )}
 
             </div>
-
-            {mostrarAlert &&(
-                <Alert
-                    Titulo="Llamando..."
-                    mensaje="Llamando a este usuario..."
-                    cerrar={()=>setMostrarAlert(false)}
-                />
-            )}
         </>
     )
 }
+
 
 export default ChatHeader
