@@ -62,6 +62,13 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
         </svg>
     )
 
+    // agregado
+    const IconoTienda = () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 6V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H3v2h1v7c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-7h1V6h-3zm-6 0h4v2h-4V6zm8 9H6v-5h12v5z"/>
+        </svg>
+    )
+
     return(
         <div className="Perfil-Card">
             <div style={{display: "inline-flex", alignItems: "center", gap: "6px", width: "100%", overflow: "hidden"}}>
@@ -111,6 +118,14 @@ function PerfilCard({cambiarVista, abrirSolicitudes}){
                 <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("tareas")}>
                     <IconoTareas/>
                 </div>
+
+
+                {/* Agregado */}
+                <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={() => cambiarVista("tienda")}>
+                    <IconoTienda/>
+                </div>
+
+
                 <div style={{display: "flex", gap: "3px", cursor: "pointer", flexShrink: 0}} onClick={abrirSolicitudes}>
                     <IconoSolicitud/>
                 </div>

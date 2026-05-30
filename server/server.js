@@ -1325,8 +1325,37 @@ app.post("/mensajes/archivo", uploadMensaje.single("archivo"), async (req, res) 
 
     db.query(sqlConv, [idEmisor, idReceptor], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message })
+
+        const insertarYResponder = (idCon) => {
+            insertarMensaje(idCon, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
+            
+            // --- ACTUALIZAR TAREA (después de insertar mensaje) ---
+            const port = process.env.PORT || 3000
+            // idTarea 10 = "Mira!!" (Envia una Foto o Imagen a un chat)
+            fetch(`http://localhost:${port}/tareas/progreso`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    idUsuario: idEmisor, 
+                    idTarea: 10,        // Ajusta según tu BD
+                    incremento: 1
+                })
+            }).catch(err => console.error("Error actualizando tarea (archivo):", err))
+            // -----------------------------------------------------
+            // idTarea 14 = "envia más de 6 Fotos a un amigo (1000pts c/u)"
+            fetch(`http://localhost:${port}/tareas/progreso`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    idUsuario: idEmisor, 
+                    idTarea: 14,        // Ajusta según tu BD
+                    incremento: 1
+                })
+            }).catch(err => console.error("Error actualizando tarea (archivo):", err))
+        }
+
         if (rows.length > 0) {
-            insertarMensaje(rows[0].id_conversacion, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
+            insertarYResponder(rows[0].id_conversacion)
         } else {
             db.query("INSERT INTO conversacion (esGrupo) VALUES (0)", (err2, result) => {
                 if (err2) return res.status(500).json({ error: err2.message })
@@ -1335,7 +1364,7 @@ app.post("/mensajes/archivo", uploadMensaje.single("archivo"), async (req, res) 
                     [idCon, idEmisor, idCon, idReceptor],
                     (err3) => {
                         if (err3) return res.status(500).json({ error: err3.message })
-                        insertarMensaje(idCon, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
+                        insertarYResponder(idCon)
                     }
                 )
             })
@@ -1356,6 +1385,73 @@ app.post("/mensajes/grupo/archivo", uploadMensaje.single("archivo"), async (req,
     const urlArchivo = await subirACloudinaryOFallback(req.file)
 
     insertarMensaje(idConversacion, idEmisor, req.file.originalname, res, tipo, urlArchivo)
+})
+
+// Obtener todos los ítems disponibles
+app.get("/items", (req, res) => {
+    const sql = "SELECT * FROM item ORDER BY Precio ASC"
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener ítems" })
+        res.json(result)
+    })
+})
+
+// Comprar un ítem (canjear puntos)
+app.post("/comprar", (req, res) => {
+    const { idUsuario, idItem } = req.body
+
+    // Verificar puntos suficientes y existencia del ítem
+    const sqlCheck = `
+        SELECT u.Puntos, i.Precio
+        FROM usuario u, item i
+        WHERE u.ID_Us = ? AND i.ID_Item = ?
+    `
+    db.query(sqlCheck, [idUsuario, idItem], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error en la compra" })
+        if (result.length === 0) return res.status(404).json({ error: "Ítem no encontrado" })
+
+        const { Puntos, Precio } = result[0]
+        if (Puntos < Precio) {
+            return res.status(400).json({ error: "Puntos insuficientes" })
+        }
+
+        // Restar puntos y agregar al inventario del usuario
+        const sqlCompra = `
+            START TRANSACTION;
+            UPDATE usuario SET Puntos = Puntos - ? WHERE ID_Us = ?;
+            INSERT INTO usuario_item (id_usuario, id_item) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE equipado = equipado;
+            COMMIT;
+        `
+        // MySQL no permite múltiples sentencias en una sola llamada directamente,
+        // lo hacemos en dos pasos con promesa o callbacks anidados.
+        db.query("UPDATE usuario SET Puntos = Puntos - ? WHERE ID_Us = ?", [Precio, idUsuario], (errUpdate) => {
+            if (errUpdate) return res.status(500).json({ error: "Error al actualizar puntos" })
+            db.query("INSERT INTO usuario_item (id_usuario, id_item) VALUES (?, ?) ON DUPLICATE KEY UPDATE equipado = equipado", [idUsuario, idItem], (errInsert) => {
+                if (errInsert) {
+                    // revertir puntos si falla la inserción
+                    db.query("UPDATE usuario SET Puntos = Puntos + ? WHERE ID_Us = ?", [Precio, idUsuario])
+                    return res.status(500).json({ error: "Error al agregar al inventario" })
+                }
+                res.json({ message: "Compra exitosa" })
+            })
+        })
+    })
+})
+
+// Obtener inventario del usuario (opcional, para saber qué tiene)
+app.get("/inventario/:idUsuario", (req, res) => {
+    const { idUsuario } = req.params
+    const sql = `
+        SELECT i.*, ui.Equipado
+        FROM usuario_item ui
+        INNER JOIN item i ON ui.id_item = i.ID_Item
+        WHERE ui.id_usuario = ?
+    `
+    db.query(sql, [idUsuario], (err, result) => {
+        if (err) return res.status(500).json({ error: "Error al obtener inventario" })
+        res.json(result)
+    })
 })
 
 
@@ -1503,6 +1599,15 @@ io.on("connection", (socket) => {
             from: usuarioIdActual
         })
     })
+
+    socket.on("webrtc-reject", (data) => {
+        console.log(`[WebRTC Server] Rechazo de llamada de: ${usuarioIdActual} para: ${data.to}`);
+        // Reenviar el evento al destinatario (quien inició la llamada)
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-reject", {
+            from: usuarioIdActual
+        });
+    });
+
 
     socket.on("webrtc-busy", (data) => {
         console.log(`[WebRTC Server] Destinatario ocupado: ${usuarioIdActual} para: ${data.to}`)

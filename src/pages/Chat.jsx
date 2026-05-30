@@ -10,6 +10,7 @@ import ChatInfoPanel from "../components/chat/ChatInfoPanel"
 import Settings from "../components/Settings"
 import Notificacion from "../components/Notificacion"
 import Tareas from "../components/Tareas"
+import Tienda from "../components/Tienda"
 import Solicitudes from "../components/Solicitudes"
 
 import { useEffect, useState, useRef } from "react"
@@ -302,6 +303,7 @@ function Chat(){
     const rechazarLlamada = () => {
         const info = datosLlamadaRef.current
         if (info) {
+            socket.emit("webrtc-reject", { to: info.to })
             socket.emit("webrtc-hangup", { to: info.to })
         }
         finalizarLlamada()
@@ -732,6 +734,31 @@ function Chat(){
             toast.info("Llamada finalizada.")
         })
 
+        // agreagado
+        socket.on("webrtc-reject", async (data) => {
+            if (String(data.from) === String(usuario?.id)) return
+            console.log("Llamada rechazada por:", data.from)
+            toast.info("El usuario ha rechazado la llamada.")
+            
+            // Actualizar tarea de "Te han rechazado una videollamada" (idTarea = 12)
+            try {
+                await fetch(`${API_URL}/tareas/progreso`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        idUsuario: usuario.id,
+                        idTarea: 12,
+                        incremento: 1
+                    })
+                })
+                console.log("Tarea de rechazo registrada correctamente")
+            } catch (error) {
+                console.error("Error registrando tarea de rechazo:", error)
+            }
+            
+            finalizarLlamada()
+        })
+
         socket.on("webrtc-busy", (data) => {
             if (String(data.from) === String(usuario?.id)) return
             console.log("El otro usuario está ocupado:", data.from)
@@ -1028,6 +1055,14 @@ function Chat(){
                 {visita === "noti" && (
                     <VistaGenerica titulo="Notificaciones">
                         <Notificacion/>
+                    </VistaGenerica>
+                )}
+                
+
+                {/* agregado */}
+                {visita === "tienda" && (
+                    <VistaGenerica titulo="Tienda">
+                        <Tienda/>
                     </VistaGenerica>
                 )}
 
