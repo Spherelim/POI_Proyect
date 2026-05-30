@@ -19,7 +19,7 @@ cloudinary.config({
 
 const uploadDir = path.join(__dirname, "uploads")
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir,{ recursive: true })
+    fs.mkdirSync(uploadDir, { recursive: true })
 }
 
 const storage = multer.diskStorage({
@@ -32,7 +32,7 @@ const storage = multer.diskStorage({
     }
 })
 
-const upload = multer({ 
+const upload = multer({
     storage: storage,
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
     fileFilter: (req, file, cb) => {
@@ -66,10 +66,10 @@ const uploadMensaje = multer({
         const allowed = /jpeg|jpg|png|gif|webp|pdf|txt|doc|docx|xls|xlsx|zip/
         const ext = allowed.test(path.extname(file.originalname).toLowerCase())
         const mime = [
-            "image/jpeg","image/png","image/gif","image/webp",
-            "application/pdf","text/plain",
-            "application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "image/jpeg", "image/png", "image/gif", "image/webp",
+            "application/pdf", "text/plain",
+            "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "application/zip"
         ].includes(file.mimetype)
         if (ext && mime) return cb(null, true)
@@ -138,12 +138,12 @@ app.post("/login", (req, res) => {
         WHERE u.NombreUsuario = ? AND u.Contraseña = ?
     `
     db.query(sql, [nombreUsuario, contrasena], (err, result) => {
-        if(err) return res.status(500).json({ error: "Error al iniciar sesión" })
-        if(result.length === 0) return res.status(401).json({ error: "Credenciales incorrectas" })
-        
+        if (err) return res.status(500).json({ error: "Error al iniciar sesión" })
+        if (result.length === 0) return res.status(401).json({ error: "Credenciales incorrectas" })
+
         const userId = result[0].ID_Us
-        
-        res.json({ 
+
+        res.json({
             token: "token-de-ejemplo",
             user: {
                 id: userId,
@@ -151,14 +151,14 @@ app.post("/login", (req, res) => {
                 nombreCompleto: result[0].NombreCompleto
             }
         })
-        
+
         // Llamar al endpoint de tareas sin await, en segundo plano
         const port = process.env.PORT || 3000
         fetch(`http://localhost:${port}/tareas/progreso`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                idUsuario: userId, 
+            body: JSON.stringify({
+                idUsuario: userId,
                 idTarea: 4, // ID de la tarea de login
                 incremento: 1
             })
@@ -202,15 +202,15 @@ app.post("/register", (req, res) => {
 
         db.query(verificar, [nombreUsuario, correo], (err, result) => {
 
-            if(err){
+            if (err) {
                 console.error("Error al verificar usuario:", err)
                 return res.status(500).json({
-                    error:"Error al registrar usuario"
+                    error: "Error al registrar usuario"
                 })
             }
-            if(result.length > 0){
+            if (result.length > 0) {
                 return res.status(400).json({
-                    error:"Nombre de usuario o correo ya registrado"
+                    error: "Nombre de usuario o correo ya registrado"
                 })
             }
         })
@@ -254,18 +254,18 @@ app.post("/register", (req, res) => {
 
                 db.query(sqlTareas, [usuarioId], (err) => {
 
-                    if(err){
+                    if (err) {
 
                         console.error("Error al asignar tareas:", err)
 
                         return res.status(500).json({
-                            error:"Error al asignar tareas"
+                            error: "Error al asignar tareas"
                         })
 
                     }
 
                     return res.status(201).json({
-                        message:"Usuario registrado exitosamente"
+                        message: "Usuario registrado exitosamente"
                     })
 
                 })
@@ -379,19 +379,19 @@ app.post("/solicitud/enviar", (req, res) => {
     db.query(sql, [idEmisor, idReceptor], (err) => {
         if (err) return res.status(500).json({ error: "Error al enviar solicitud" })
         res.json({ message: "Solicitud enviada" })
-        
+
         // Guardar la notificación
         insertarNotificacion(idReceptor, idEmisor, "solicitud", "Te ha enviado una solicitud de amistad")
-        
+
         io.to(`user_${idReceptor}`).emit("solicitud_recibida", { idEmisor })
-        
+
         // Llamar al endpoint de tareas sin await, en segundo plano
         const port = process.env.PORT || 3000
         fetch(`http://localhost:${port}/tareas/progreso`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                idUsuario: idEmisor, 
+            body: JSON.stringify({
+                idUsuario: idEmisor,
                 idTarea: 7, // ID de la tarea de login
                 incremento: 1
             })
@@ -417,23 +417,23 @@ app.get("/solicitudes/:idUsuario", (req, res) => {
 
 app.put("/solicitud/responder", (req, res) => {
     const { idAmistad, accion } = req.body
-    
+
     console.log("Respondiendo a solicitud:", { idAmistad, accion })
-    
+
     // Obtener usuario1 y usuario2
     const sqlGetUsuarios = `SELECT usuario1, usuario2 FROM amistad WHERE ID_Amistad = ?`
-    
+
     db.query(sqlGetUsuarios, [idAmistad], (err, result) => {
         if (err || result.length === 0) {
             return res.status(500).json({ error: "Error al obtener datos" })
         }
-        
+
         const idEmisor = result[0].usuario1
         const idReceptor = result[0].usuario2
-        
+
         let sql
         let params
-        
+
         if (accion === "aceptado") {
             sql = `UPDATE amistad SET estado = 'aceptado' WHERE ID_Amistad = ?`
             params = [idAmistad]
@@ -444,51 +444,51 @@ app.put("/solicitud/responder", (req, res) => {
         } else {
             return res.status(400).json({ error: "Acción no válida" })
         }
-        
+
         db.query(sql, params, (err) => {
             if (err) {
                 console.error("Error:", err)
                 return res.status(500).json({ error: "Error al responder solicitud" })
             }
             res.json({ message: `Solicitud ${accion}` })
-            
+
             // Guardar notificación para el emisor original (el receptor actual detonó la acción)
             const mensajeNoti = accion === "aceptado" ? "Ha aceptado tu solicitud de amistad" : "Ha rechazado tu solicitud de amistad";
             insertarNotificacion(idEmisor, idReceptor, accion, mensajeNoti);
-            
+
             io.to(`user_${idEmisor}`).emit("amistad_actualizada", { idAmigo: idReceptor, accion })
             io.to(`user_${idReceptor}`).emit("amistad_actualizada", { idAmigo: idEmisor, accion })
-            
+
             const port = process.env.PORT || 3000
-            
+
             if (accion === "aceptado") {
                 fetch(`http://localhost:${port}/tareas/progreso`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        idUsuario: idEmisor, 
+                    body: JSON.stringify({
+                        idUsuario: idEmisor,
                         idTarea: 3,
                         incremento: 1
                     })
                 }).catch(err => console.error("Error:", err))
-                
+
                 fetch(`http://localhost:${port}/tareas/progreso`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        idUsuario: idReceptor, 
+                    body: JSON.stringify({
+                        idUsuario: idReceptor,
                         idTarea: 3,
                         incremento: 1
                     })
                 }).catch(err => console.error("Error:", err))
             }
-            
+
             if (accion === "rechazado") {
                 fetch(`http://localhost:${port}/tareas/progreso`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        idUsuario: idReceptor, 
+                    body: JSON.stringify({
+                        idUsuario: idReceptor,
                         idTarea: 8,
                         incremento: 1
                     })
@@ -501,7 +501,7 @@ app.put("/solicitud/responder", (req, res) => {
 // En server.js - Obtener estado de la amistad (favorito, silenciado)
 app.get("/amistad/estado/:idUsuario/:idAmigo", (req, res) => {
     const { idUsuario, idAmigo } = req.params
-    
+
     const sql = `
         SELECT Favorito, Sileciar
         FROM amistad
@@ -510,7 +510,7 @@ app.get("/amistad/estado/:idUsuario/:idAmigo", (req, res) => {
     db.query(sql, [idUsuario, idAmigo, idAmigo, idUsuario], (err, result) => {
         if (err) return res.status(500).json({ error: "Error" })
         if (result.length === 0) return res.json({ favorito: 0, silenciado: 0 })
-        res.json({ 
+        res.json({
             favorito: result[0].Favorito || 0,
             silenciado: result[0].Sileciar || 0
         })
@@ -520,7 +520,7 @@ app.get("/amistad/estado/:idUsuario/:idAmigo", (req, res) => {
 // Endpoint para marcar/desmarcar favorito
 app.put("/amistad/favorito", (req, res) => {
     const { idUsuario, idAmigo, favorito } = req.body
-    
+
     const sql = `
         UPDATE amistad 
         SET Favorito = ? 
@@ -529,7 +529,7 @@ app.put("/amistad/favorito", (req, res) => {
     db.query(sql, [favorito ? 1 : 0, idUsuario, idAmigo, idAmigo, idUsuario], (err) => {
         if (err) return res.status(500).json({ error: "Error" })
         res.json({ message: favorito ? "Marcado como favorito" : "Eliminado de favoritos" })
-        
+
         if (favorito) {
             const port = process.env.PORT || 3000
             fetch(`http://localhost:${port}/tareas/progreso`, {
@@ -544,7 +544,7 @@ app.put("/amistad/favorito", (req, res) => {
 // Endpoint para silenciar/desilenciar
 app.put("/amistad/silenciar", (req, res) => {
     const { idUsuario, idAmigo, silenciado } = req.body
-    
+
     const sql = `
         UPDATE amistad 
         SET Sileciar = ? 
@@ -559,7 +559,7 @@ app.put("/amistad/silenciar", (req, res) => {
 // Endpoint para eliminar amigo
 app.delete("/amistad/eliminar", (req, res) => {
     const { idUsuario, idAmigo } = req.body
-    
+
     const sql = `
         DELETE FROM amistad 
         WHERE (usuario1 = ? AND usuario2 = ?) OR (usuario1 = ? AND usuario2 = ?)
@@ -576,7 +576,7 @@ app.delete("/amistad/eliminar", (req, res) => {
 // Endpoint para bloquear usuario
 app.put("/amistad/bloquear", (req, res) => {
     const { idUsuario, idAmigo } = req.body
-    
+
     const sql = `
         UPDATE amistad 
         SET estado = 'bloqueado' 
@@ -594,7 +594,7 @@ app.put("/amistad/bloquear", (req, res) => {
 // Endpoint para desbloquear usuario
 app.put("/amistad/desbloquear", (req, res) => {
     const { idUsuario, idAmigo } = req.body
-    
+
     const sql = `
         UPDATE amistad 
         SET estado = 'aceptado' 
@@ -605,7 +605,7 @@ app.put("/amistad/desbloquear", (req, res) => {
             console.error("Error al desbloquear usuario:", err)
             return res.status(500).json({ error: "Error al desbloquear usuario" })
         }
-        
+
         res.json({ message: "Usuario desbloqueado correctamente" })
 
         io.to(`user_${idUsuario}`).emit("amistad_actualizada", { idAmigo: idAmigo, accion: "desbloqueado" })
@@ -642,7 +642,7 @@ app.get("/mensajes/grupo/:idConversacion", (req, res) => {
 
 app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
     const { idUsuario, idAmigo } = req.params;
-    
+
     // Consulta para traer los mensajes de la conversación
     const sqlSelect = `
         SELECT m.ID_Mensaje, m.mensaje, m.fechaCreacion, m.id_remitente,
@@ -654,10 +654,10 @@ app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
         WHERE (c.esGrupo IS NULL OR c.esGrupo = 0)
         ORDER BY m.fechaCreacion ASC
     `
-    
+
     db.query(sqlSelect, [idUsuario, idAmigo], (err, result) => {
         if (err) return res.status(500).json({ error: "Error al obtener mensajes" })
-        
+
         // Marcar como leídos los mensajes que envió el amigo a mí en esta conversación
         const sqlUpdate = `
             UPDATE mensaje m
@@ -669,7 +669,7 @@ app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
         `
         db.query(sqlUpdate, [idUsuario, idAmigo, idAmigo], (errUpdate) => {
             if (errUpdate) console.error("Error al marcar mensajes como leídos:", errUpdate)
-            
+
             // 🔥 Eliminar las notificaciones de mensajes de este usuario
             const sqlDeleteNoti = `DELETE FROM notificaciones WHERE id_usuario = ? AND id_emisor = ? AND tipo = 'mensaje'`
             db.query(sqlDeleteNoti, [idUsuario, idAmigo])
@@ -699,7 +699,7 @@ app.post("/mensajes/enviar", (req, res) => {
                 leido = 1;
             }
         }
-    
+
         db.query(sqlBuscar, [idEmisor, idReceptor], (err, result) => {
             if (err) return res.status(500).json({ error: "Error" })
             if (result.length > 0) {
@@ -721,17 +721,17 @@ app.post("/mensajes/enviar", (req, res) => {
                 })
             }
         })
-        
+
         // Activar tarea de mensaje (después de insertar)
         fetch(`http://localhost:${process.env.PORT || 3000}/tareas/progreso`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                idUsuario: idEmisor, 
+            body: JSON.stringify({
+                idUsuario: idEmisor,
                 idTarea: 1, // ID de la tarea de enviar mensaje
                 incremento: 1
             })
-        }).catch(err => {})
+        }).catch(err => { })
     };
 
     if (contenido && typeof contenido === 'string' && contenido.includes("Correo: No disponible")) {
@@ -765,7 +765,7 @@ app.post("/grupos/crear", (req, res) => {
             console.error("Error al crear conversación de grupo:", err);
             return res.status(500).json({ error: "Error al crear el grupo." });
         }
-        
+
         const idCon = r.insertId;
 
         // 2. Preparar los inserts para conversacion_usuario
@@ -902,13 +902,13 @@ app.get("/grupos/:idUsuario", (req, res) => {
 // Obtener detalles e integrantes de un grupo
 app.get("/grupos/detalles/:idConversacion", (req, res) => {
     const { idConversacion } = req.params;
-    
+
     // Obtener info del grupo
     const sqlGrupo = "SELECT ID_Conversacion, nombreGrupo, fotoGrupo, fotoBanner, idCreador, esGrupo FROM conversacion WHERE ID_Conversacion = ? AND esGrupo = 1";
     db.query(sqlGrupo, [idConversacion], (err, grupos) => {
         if (err) return res.status(500).json({ error: "Error al obtener detalles" });
         if (grupos.length === 0) return res.status(404).json({ error: "Grupo no encontrado" });
-        
+
         const grupo = grupos[0];
 
         // Obtener integrantes
@@ -983,7 +983,7 @@ app.post("/grupos/miembros/eliminar", (req, res) => {
         const sqlRoles = "SELECT id_usuario, rol FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario IN (?, ?)";
         db.query(sqlRoles, [idConversacion, idEjecutor, idMiembroEliminar], (err, resultR) => {
             if (err) return res.status(500).json({ error: "Error" });
-            
+
             const ejecutorRow = resultR.find(r => r.id_usuario === parseInt(idEjecutor));
             const eliminarRow = resultR.find(r => r.id_usuario === parseInt(idMiembroEliminar));
 
@@ -1080,7 +1080,7 @@ app.post("/grupos/salir", (req, res) => {
 // Enviar un mensaje al grupo
 app.post("/mensajes/grupo/enviar", (req, res) => {
     let { idConversacion, idEmisor, contenido, tipo = "texto" } = req.body;
-    
+
     const processGrupo = () => {
         // Validar que pertenezca al grupo antes de enviar
         const sqlCheck = "SELECT 1 FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario = ?";
@@ -1089,21 +1089,21 @@ app.post("/mensajes/grupo/enviar", (req, res) => {
             if (result.length === 0) {
                 return res.status(403).json({ error: "No eres miembro de este grupo." });
             }
-            
+
             insertarMensaje(idConversacion, idEmisor, contenido, res, tipo);
-    
+
             // Notificar a todos los miembros del grupo (excepto a ti)
             const sqlGrupo = "SELECT nombreGrupo FROM conversacion WHERE ID_Conversacion = ?";
             db.query(sqlGrupo, [idConversacion], (errG, resultG) => {
                 if (errG || resultG.length === 0) return;
                 const nombreGrupo = resultG[0].nombreGrupo;
-    
+
                 const sqlMiembros = "SELECT id_usuario FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario != ?";
                 db.query(sqlMiembros, [idConversacion, idEmisor], (errM, miembros) => {
                     if (errM) return;
                     miembros.forEach(miembro => {
                         const idReceptor = miembro.id_usuario;
-                        
+
                         // Verificar si el receptor está viendo activamente el grupo (si está en el room del socket)
                         let enChat = false;
                         const socketIdReceptor = usuariosConectados.get(parseInt(idReceptor)) || usuariosConectados.get(String(idReceptor));
@@ -1113,7 +1113,7 @@ app.post("/mensajes/grupo/enviar", (req, res) => {
                                 enChat = true;
                             }
                         }
-                        
+
                         // Si no está viendo el chat del grupo, le mandamos notificación visual
                         if (!enChat) {
                             const payloadGrupo = JSON.stringify({ idGrupo: idConversacion, nombreGrupo: nombreGrupo });
@@ -1179,7 +1179,7 @@ app.get("/usuarios/detalles/:id", (req, res) => {
         if (result.length === 0) {
             return res.status(404).json({ error: "Usuario no encontrado" })
         }
-        
+
         res.json({
             ...result[0],
             FechaIngreso: result[0].FechaRegistro
@@ -1196,14 +1196,14 @@ app.post('/upload/foto/:id', upload.single('foto'), (req, res) => {
     }
 
     const fotoUrl = `/uploads/${req.file.filename}`
-    
+
     db.query('UPDATE usuario SET Foto = ? WHERE ID_Us = ?', [fotoUrl, id], (err) => {
         if (err) {
             console.error("Error al guardar foto:", err)
             return res.status(500).json({ error: 'Error al guardar foto' })
         }
         res.json({ fotoUrl })
-        
+
         io.emit("usuario_actualizado", { idUsuario: id })
 
         // Llamar al endpoint de tareas sin await, en segundo plano
@@ -1211,8 +1211,8 @@ app.post('/upload/foto/:id', upload.single('foto'), (req, res) => {
         fetch(`http://localhost:${port}/tareas/progreso`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                idUsuario: id, 
+            body: JSON.stringify({
+                idUsuario: id,
                 idTarea: 5, // ID de la tarea de login
                 incremento: 1
             })
@@ -1230,23 +1230,23 @@ app.post('/upload/banner/:id', upload.single('banner'), (req, res) => {
     }
 
     const bannerUrl = `/uploads/${req.file.filename}`
-    
+
     db.query('UPDATE usuario SET Banner = ? WHERE ID_Us = ?', [bannerUrl, id], (err) => {
         if (err) {
             console.error("Error al guardar banner:", err)
             return res.status(500).json({ error: 'Error al guardar banner' })
         }
         res.json({ bannerUrl })
-        
+
         io.emit("usuario_actualizado", { idUsuario: id })
-        
+
         // Llamar al endpoint de tareas sin await, en segundo plano
         const port = process.env.PORT || 3000
         fetch(`http://localhost:${port}/tareas/progreso`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                idUsuario: id, 
+            body: JSON.stringify({
+                idUsuario: id,
                 idTarea: 6, // ID de la tarea de login
                 incremento: 1
             })
@@ -1260,22 +1260,22 @@ app.post('/upload/banner/:id', upload.single('banner'), (req, res) => {
 app.put("/usuarios/actualizar/:id", (req, res) => {
     const { id } = req.params
     const { nombreUsuario, nombreCompleto, correo, fechaNac, descripcion } = req.body
-    
+
     // Primero obtener el id_per del usuario
     const getIdPer = `SELECT id_per FROM usuario WHERE ID_Us = ?`
-    
+
     db.query(getIdPer, [id], (err, result) => {
         if (err) {
             console.error("Error obteniendo id_per:", err)
             return res.status(500).json({ error: "Error al actualizar datos" })
         }
-        
+
         if (result.length === 0) {
             return res.status(404).json({ error: "Usuario no encontrado" })
         }
-        
+
         const idPer = result[0].id_per
-        
+
         // Actualizar persona
         const sqlPersona = `
             UPDATE persona 
@@ -1283,13 +1283,13 @@ app.put("/usuarios/actualizar/:id", (req, res) => {
                 FechaNac = ?
             WHERE ID_Per = ?
         `
-        
+
         db.query(sqlPersona, [nombreCompleto, fechaNac, idPer], (err) => {
             if (err) {
                 console.error("Error actualizando persona:", err)
                 return res.status(500).json({ error: "Error al actualizar datos" })
             }
-            
+
             // Actualizar usuario (sin foto y banner que ya se subieron aparte)
             const sqlUsuario = `
                 UPDATE usuario 
@@ -1298,14 +1298,14 @@ app.put("/usuarios/actualizar/:id", (req, res) => {
                     Descripcion = ?
                 WHERE ID_Us = ?
             `
-            
+
             db.query(sqlUsuario, [nombreUsuario, correo, descripcion, id], (err) => {
                 if (err) {
                     console.error("Error actualizando usuario:", err)
                     return res.status(500).json({ error: "Error al actualizar datos" })
                 }
-                
-                res.json({ 
+
+                res.json({
                     message: "Datos actualizados correctamente",
                     user: {
                         id: id,
@@ -1333,9 +1333,9 @@ app.get("/usuarios/:id/foto", (req, res) => {
 // Endpoint para actualizar progreso de tarea
 app.post("/tareas/progreso", (req, res) => {
     const { idUsuario, idTarea, incremento = 1 } = req.body
-    
+
     console.log("Actualizando tarea:", { idUsuario, idTarea, incremento })
-    
+
     const sql = `
         UPDATE usuario_tarea ut
         INNER JOIN tarea t ON ut.id_tarea = t.ID_Tarea
@@ -1348,15 +1348,15 @@ app.post("/tareas/progreso", (req, res) => {
         AND ut.id_tarea = ?
         AND ut.Completada = 0
     `
-    
+
     db.query(sql, [incremento, incremento, idUsuario, idTarea], (err, result) => {
         if (err) {
             console.error("Error actualizando progreso:", err)
             return res.status(500).json({ error: "Error al actualizar progreso" })
         }
-        
+
         console.log("Resultado update:", result)
-        
+
         // Si se completó, sumar puntos
         if (result.changedRows > 0) {
             const sqlPuntos = `
@@ -1372,8 +1372,8 @@ app.post("/tareas/progreso", (req, res) => {
                 if (err2) console.error("Error sumando puntos:", err2)
             })
         }
-        
-        res.json({ 
+
+        res.json({
             message: "Progreso actualizado",
             completada: result.changedRows > 0
         })
@@ -1383,7 +1383,7 @@ app.post("/tareas/progreso", (req, res) => {
 // Endpoint para obtener progreso de tareas del usuario
 app.get("/tareas/progreso/:idUsuario", (req, res) => {
     const { idUsuario } = req.params
-    
+
     const sql = `
         SELECT 
             t.ID_Tarea,
@@ -1398,13 +1398,13 @@ app.get("/tareas/progreso/:idUsuario", (req, res) => {
         LEFT JOIN usuario_tarea ut ON t.ID_Tarea = ut.id_tarea AND ut.id_usuario = ?
         ORDER BY ut.Completada ASC, t.Objetivo DESC
     `
-    
+
     db.query(sql, [idUsuario], (err, result) => {
         if (err) return res.status(500).json({ error: err.message })
         res.json(result)
     })
 })
-app.get("/tareas/:id",(req,res)=>{
+app.get("/tareas/:id", (req, res) => {
 
     const id = req.params.id
 
@@ -1414,11 +1414,11 @@ app.get("/tareas/:id",(req,res)=>{
     WHERE ID_Us = ?
     `
 
-    db.query(sql,[id],(err,result)=>{
+    db.query(sql, [id], (err, result) => {
 
-        if(err){
+        if (err) {
             return res.status(500).json({
-                error:"Error"
+                error: "Error"
             })
         }
 
@@ -1464,7 +1464,7 @@ async function subirACloudinaryOFallback(file, folder = "mensajes") {
             folder: `mundichat/${folder}`,
             resource_type: "auto"
         })
-        
+
         // Intentar borrar archivo temporal local
         try {
             fs.unlinkSync(localPath)
@@ -1520,15 +1520,15 @@ app.post("/mensajes/archivo", uploadMensaje.single("archivo"), async (req, res) 
         const insertarYResponder = (idCon) => {
             if (leido === 0) insertarNotificacion(idReceptor, idEmisor, "mensaje", "Tienes un nuevo mensaje multimedia");
             insertarMensaje(idCon, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
-            
+
             // --- ACTUALIZAR TAREA (después de insertar mensaje) ---
             const port = process.env.PORT || 3000
             // idTarea 10 = "Mira!!" (Envia una Foto o Imagen a un chat)
             fetch(`http://localhost:${port}/tareas/progreso`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    idUsuario: idEmisor, 
+                body: JSON.stringify({
+                    idUsuario: idEmisor,
                     idTarea: 10,        // Ajusta según tu BD
                     incremento: 1
                 })
@@ -1538,8 +1538,8 @@ app.post("/mensajes/archivo", uploadMensaje.single("archivo"), async (req, res) 
             fetch(`http://localhost:${port}/tareas/progreso`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    idUsuario: idEmisor, 
+                body: JSON.stringify({
+                    idUsuario: idEmisor,
                     idTarea: 14,        // Ajusta según tu BD
                     incremento: 1
                 })
@@ -1710,9 +1710,9 @@ io.on("connection", (socket) => {
     socket.on("registrar", (idUsuario) => {
         usuarioIdActual = idUsuario
         socket.join(`user_${idUsuario}`)
-        
+
         usuariosConectados.set(idUsuario, socket.id)
-        
+
         // Suscribirse a todas las salas de grupo del usuario automáticamente
         const sqlGrupos = "SELECT id_conversacion FROM conversacion_usuario INNER JOIN conversacion c ON conversacion_usuario.id_conversacion = c.ID_Conversacion WHERE id_usuario = ? AND c.esGrupo = 1";
         db.query(sqlGrupos, [idUsuario], (errG, grupos) => {
@@ -1746,7 +1746,7 @@ io.on("connection", (socket) => {
 
             if (pendingMsgs.length > 0) {
                 console.log(`Enviando ${pendingMsgs.length} mensajes pendientes al usuario ${idUsuario}`)
-                
+
                 // Emitir todos los mensajes acumulados al usuario
                 socket.emit("mensajes_pendientes", pendingMsgs)
 
@@ -1858,7 +1858,7 @@ io.on("connection", (socket) => {
 
     socket.on("webrtc-hangup", (data) => {
         console.log(`[WebRTC Server] Colgar (Hangup) recibido de: ${usuarioIdActual} para: ${data.to}`)
-        
+
         insertarNotificacion(data.to, usuarioIdActual, "llamada", "Llamada perdida o finalizada");
 
         socket.broadcast.to(`user_${data.to}`).emit("webrtc-hangup", {
@@ -1870,7 +1870,7 @@ io.on("connection", (socket) => {
         console.log(`[WebRTC Server] Rechazo de llamada de: ${usuarioIdActual} para: ${data.to}`);
         // El usuarioIdActual es quien rechaza la llamada, data.to es quien la originó (el que recibirá la notificación)
         insertarNotificacion(data.to, usuarioIdActual, "llamada", "Ha rechazado tu llamada");
-        
+
         // Reenviar el evento al destinatario (quien inició la llamada)
         socket.broadcast.to(`user_${data.to}`).emit("webrtc-reject", {
             from: usuarioIdActual
