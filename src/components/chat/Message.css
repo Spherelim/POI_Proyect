@@ -14,7 +14,7 @@
     font-size: 14px;
     font-weight: 500;
     line-height: 1.4;
-    user-select: none;
+    user-select: text;
 }
 
 .left{
@@ -96,9 +96,53 @@
          1.5px -1.5px 0 #000,
         -1.5px  1.5px 0 #000,
          1.5px  1.5px 0 #000,
-        -1.5px  0px   0 #000,
+         -1.5px  0px   0 #000,
          1.5px  0px   0 #000,
          0px   -1.5px 0 #000,
          0px    1.5px 0 #000;
+}
+
+/* ── Mensajes de Ubicación ────────────────────── */
+.msg-ubicacion-container {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    max-width: 250px;
+    padding: 2px;
+}
+
+.msg-ubicacion-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: inherit;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    text-align: center;
+}
+
+.left .msg-ubicacion-link {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.msg-ubicacion-link:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.left .msg-ubicacion-link:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.msg-location-icon {
+    font-size: 18px;
+}
+
+.msg-location-text {
+    font-size: 13px;
 }
 

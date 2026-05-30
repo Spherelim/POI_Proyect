@@ -618,3 +618,58 @@
         box-shadow: 0 0 25px rgba(129, 199, 132, 0.8);
     }
 }
+
+/* Contenedor wrapper para posicionar el botón de bajar */
+.chat-messages-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* Botón para bajar rápido al final del chat */
+.scroll-to-bottom-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 25px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(30, 30, 40, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+    animation: fadeInScrollBtn 0.25s ease-out;
+}
+
+.scroll-to-bottom-btn:hover {
+    background: rgba(30, 30, 40, 0.85);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.scroll-to-bottom-btn:active {
+    transform: scale(0.95);
+}
+
+@keyframes fadeInScrollBtn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

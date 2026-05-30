@@ -8,6 +8,7 @@ import FotoDefault from "/src/assets/images/Conejito.jpg"
 import LlamarIcon from "/src/assets/icons/Llamada/llamada-telefonica 1 (w).png"
 import VidLlamadaIcon from "/src/assets/icons/Llamada/video-camara-alt (w).png"
 import BuscarIcon from "/src/assets/icons/busqueda (w).png"
+import IzquierdaIcon from "/src/assets/images/Flechas/izquierda (w).png"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
@@ -81,8 +82,13 @@ function ChatHeader({abrirInfo, amigo, onVolver, onIniciarLlamada}){
 
                 {/* Botón de volver — solo visible en móvil */}
                 {onVolver && (
-                    <button className="btn-volver-mobile" onClick={onVolver} aria-label="Volver">
-                        ←
+                    <button 
+                        className="btn-volver-mobile" 
+                        onClick={onVolver} 
+                        aria-label="Volver"
+                        style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none" }}
+                    >
+                        <img src={IzquierdaIcon} alt="Volver" style={{ width: "22px", height: "22px", objectFit: "contain" }} />
                     </button>
                 )}
 

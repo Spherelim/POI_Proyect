@@ -1,17 +1,24 @@
 import "./ChatInput.css"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { toast } from "react-toastify"
 
 import MultimediaIcon from "/src/assets/icons/chat/agregar (w).png"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
-function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, amigoActivo, usuarioId, encriptarMensajes, setEncriptarMensajes }) {
+function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, onUbicacionEnviada, amigoActivo, usuarioId, encriptarMensajes, setEncriptarMensajes }) {
 
     // Archivo seleccionado pero aún NO enviado
     const [archivoSel, setArchivoSel] = useState(null) // { file, previewUrl, tipo, nombre }
     const [subiendo, setSubiendo] = useState(false)
+    const [obteniendoUbicacion, setObteniendoUbicacion] = useState(false)
+    const [mostrarMenuAdjuntos, setMostrarMenuAdjuntos] = useState(false)
     const fileRef = useRef(null)
+
+    // Ocultar menú si cambiamos de chat
+    useEffect(() => {
+        setMostrarMenuAdjuntos(false)
+    }, [amigoActivo])
 
     // 1. Usuario selecciona archivo → solo muestra preview, NO sube todavía
     const handleFileChange = (e) => {
@@ -55,6 +62,7 @@ function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, amigo
             tipo: esImagen ? "imagen" : "archivo",
             nombre: file.name
         })
+        setMostrarMenuAdjuntos(false) // Ocultar menú tras seleccionar
         // Limpia el input para poder reseleccionar el mismo archivo
         e.target.value = ""
     }
@@ -129,6 +137,68 @@ function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, amigo
         }
     }
 
+    const handlePaste = (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                e.preventDefault();
+                const file = items[i].getAsFile();
+                if (file) {
+                    setArchivoSel({
+                        file,
+                        previewUrl: URL.createObjectURL(file),
+                        tipo: "imagen",
+                        nombre: file.name || "imagen_pegada.png"
+                    });
+                }
+                break; // Solo procesar la primera imagen si hay varias
+            }
+        }
+    }
+
+    const handleSendLocation = () => {
+        setMostrarMenuAdjuntos(false) // Ocultar el menú inmediatamente
+        
+        if (!navigator.geolocation) {
+            toast.error("La geolocalización no está soportada por tu navegador.")
+            return
+        }
+
+        setObteniendoUbicacion(true)
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords
+                const coordsStr = `${latitude},${longitude}`
+
+                // Enviar la ubicación al chat
+                if (onUbicacionEnviada) {
+                    await onUbicacionEnviada(coordsStr)
+                }
+                setObteniendoUbicacion(false)
+            },
+            (error) => {
+                console.error("Error al obtener ubicación:", error)
+                setObteniendoUbicacion(false)
+                let errorMsg = "Error al obtener la ubicación."
+                if (error.code === error.PERMISSION_DENIED) {
+                    errorMsg = "Permiso denegado para acceder a la ubicación."
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    errorMsg = "La información de ubicación no está disponible."
+                } else if (error.code === error.TIMEOUT) {
+                    errorMsg = "Se agotó el tiempo de espera para obtener la ubicación."
+                }
+                toast.error(errorMsg)
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        )
+    }
+
     return (
         <div className="chat-input-wrapper">
 
@@ -184,15 +254,135 @@ function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, amigo
                     onChange={handleFileChange}
                 />
 
-                {/* Botón adjuntar */}
-                <label
-                    htmlFor="file-adjunto"
-                    className="btn-adjuntar"
-                    title="Adjuntar archivo"
-                    style={{ opacity: subiendo ? 0.4 : 1, pointerEvents: subiendo ? "none" : "auto" }}
-                >
-                    <img src={MultimediaIcon} alt="Adjuntar" />
-                </label>
+                {/* Menú de adjuntos interactivo estilo WhatsApp */}
+                <div style={{ position: "relative" }}>
+                    <button
+                        type="button"
+                        className="btn-adjuntar"
+                        onClick={() => setMostrarMenuAdjuntos(!mostrarMenuAdjuntos)}
+                        disabled={subiendo || obteniendoUbicacion}
+                        style={{
+                            opacity: (subiendo || obteniendoUbicacion) ? 0.4 : 1,
+                            pointerEvents: (subiendo || obteniendoUbicacion) ? "none" : "auto",
+                            background: "transparent",
+                            border: "none",
+                            fontSize: "28px",
+                            color: "white",
+                            cursor: "pointer",
+                            width: "35px",
+                            height: "35px",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            transition: "transform 0.2s, background 0.2s",
+                            borderRadius: "50%"
+                        }}
+                        onMouseEnter={(e) => { 
+                            if(!subiendo && !obteniendoUbicacion) {
+                                e.currentTarget.style.transform = "scale(1.1)";
+                                e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = "scale(1)";
+                            e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                        title="Adjuntar"
+                    >
+                        +
+                    </button>
+
+                    {/* Capa invisible para cerrar el menú al hacer clic fuera */}
+                    {mostrarMenuAdjuntos && (
+                        <div 
+                            style={{ position: "fixed", inset: 0, zIndex: 99 }} 
+                            onClick={() => setMostrarMenuAdjuntos(false)}
+                        />
+                    )}
+
+                    {mostrarMenuAdjuntos && (
+                        <div style={{
+                            position: "absolute",
+                            bottom: "100%",
+                            left: "0",
+                            marginBottom: "15px",
+                            backgroundColor: "rgba(30, 30, 40, 0.95)",
+                            borderRadius: "16px",
+                            padding: "20px 15px",
+                            display: "flex",
+                            gap: "20px",
+                            boxShadow: "0px -4px 15px rgba(0, 0, 0, 0.4)",
+                            backdropFilter: "blur(10px)",
+                            zIndex: 100
+                        }}>
+                            {/* Opcion Documento/Foto */}
+                            <label
+                                htmlFor="file-adjunto"
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    cursor: "pointer",
+                                    transition: "transform 0.2s"
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                            >
+                                <div style={{
+                                    width: "65px",
+                                    height: "45px",
+                                    borderRadius: "25px",
+                                    backgroundColor: "transparent",
+                                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+                                }}>
+                                    <img src={MultimediaIcon} alt="Multimedia" style={{ width: "24px", height: "24px", filter: "invert(0.5) sepia(1) saturate(5) hue-rotate(220deg)" }} />
+                                </div>
+                                <span style={{ fontSize: "13px", color: "#ddd", fontWeight: "500" }}>Galería</span>
+                            </label>
+
+                            {/* Opcion Ubicación */}
+                            <button
+                                type="button"
+                                onClick={handleSendLocation}
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    cursor: "pointer",
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    transition: "transform 0.2s"
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+                            >
+                                <div style={{
+                                    width: "65px",
+                                    height: "45px",
+                                    borderRadius: "25px",
+                                    backgroundColor: "transparent",
+                                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+                                }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path fillRule="evenodd" clipRule="evenodd" d="M12 2C8.134 2 5 5.134 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.134 15.866 2 12 2ZM12 11.5C10.619 11.5 9.5 10.381 9.5 9C9.5 7.619 10.619 6.5 12 6.5C13.381 6.5 14.5 7.619 14.5 9C14.5 10.381 13.381 11.5 12 11.5Z" fill="#00D28E"/>
+                                    </svg>
+                                </div>
+                                <span style={{ fontSize: "13px", color: "#ddd", fontWeight: "500" }}>Ubicación</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 {/* Input de texto */}
                 <input
@@ -202,6 +392,7 @@ function ChatInput({ mensaje, setMensaje, enviarMensaje, onArchivoEnviado, amigo
                     disabled={subiendo}
                     onChange={(e) => setMensaje(e.target.value)}
                     onKeyPress={handleKeyPress}
+                    onPaste={handlePaste}
                 />
 
                 {/* Botón enviar — aparece cuando hay texto o archivo */}

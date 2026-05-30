@@ -14,6 +14,8 @@ import Solicitudes from "../components/Solicitudes"
 import { useEffect, useState, useRef } from "react"
 import { socket } from "../socket"
 import { encriptar, desencriptar } from "../utils/crypto"
+import FlechaIzquierdaIcon from "/src/assets/images/Flechas/izquierda (w).png"
+import FlechaAbajoIcon from "/src/assets/images/Flechas/abajo (w).png"
 import FotoDefault from "/src/assets/images/Conejito.jpg"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
@@ -33,6 +35,7 @@ function Chat(){
     const mensajesContainerRef = useRef(null)
     const [actualizarSidebar, setActualizarSidebar] = useState(0)
     const [sidebarVisible, setSidebarVisible] = useState(true)
+    const [mostrarBotonBajar, setMostrarBotonBajar] = useState(false)
 
     const prevGrupoRef = useRef(null)
 
@@ -302,6 +305,7 @@ function Chat(){
     const rechazarLlamada = () => {
         const info = datosLlamadaRef.current
         if (info) {
+            socket.emit("webrtc-reject", { to: info.to })
             socket.emit("webrtc-hangup", { to: info.to })
         }
         finalizarLlamada()
@@ -422,13 +426,37 @@ function Chat(){
     useEffect(() => {
         amigoActivoRef.current = amigoActivo
         console.log("amigoActivo cambió a:", amigoActivo)
+        setMostrarBotonBajar(false) // Resetear el botón de bajar cuando cambia de chat
     }, [amigoActivo])
 
-    useEffect(() => {
-        // Scroll directo al contenedor para evitar que scrollIntoView mueva el document
+    // Función para bajar al fondo del chat
+    const scrollAlFondo = (smooth = true) => {
         if (mensajesContainerRef.current) {
-            mensajesContainerRef.current.scrollTop = mensajesContainerRef.current.scrollHeight
+            mensajesContainerRef.current.scrollTo({
+                top: mensajesContainerRef.current.scrollHeight,
+                behavior: smooth ? "smooth" : "auto"
+            })
+            setMostrarBotonBajar(false)
         }
+    }
+
+    // Manejar el scroll del contenedor para mostrar/ocultar el botón flotante
+    const handleScrollMessages = () => {
+        if (!mensajesContainerRef.current) return
+        const { scrollTop, scrollHeight, clientHeight } = mensajesContainerRef.current
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+        // Si estamos a más de 300px del final, mostrar el botón
+        setMostrarBotonBajar(distanceFromBottom > 300)
+    }
+
+    useEffect(() => {
+        // Usamos un timeout corto para garantizar que React haya renderizado y calculado las alturas en el DOM
+        const timer = setTimeout(() => {
+            if (mensajesContainerRef.current) {
+                mensajesContainerRef.current.scrollTop = mensajesContainerRef.current.scrollHeight
+            }
+        }, 60)
+        return () => clearTimeout(timer)
     }, [mensajes])
 
     useEffect(() => {
@@ -809,6 +837,30 @@ function Chat(){
             toast.info("Llamada finalizada.")
         })
 
+        socket.on("webrtc-reject", async (data) => {
+            if (String(data.from) === String(usuario?.id)) return
+            console.log("Llamada rechazada por:", data.from)
+            toast.info("El usuario ha rechazado la llamada.")
+            
+            // Actualizar tarea de "Te han rechazado una videollamada" (idTarea = 12)
+            try {
+                await fetch(`${API_URL}/tareas/progreso`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        idUsuario: usuario.id,
+                        idTarea: 12,
+                        incremento: 1
+                    })
+                })
+                console.log("Tarea de rechazo registrada correctamente")
+            } catch (error) {
+                console.error("Error registrando tarea de rechazo:", error)
+            }
+            
+            finalizarLlamada()
+        })
+
         socket.on("webrtc-busy", (data) => {
             if (String(data.from) === String(usuario?.id)) return
             console.log("El otro usuario está ocupado:", data.from)
@@ -826,6 +878,7 @@ function Chat(){
             socket.off("webrtc-toggle-video")
             socket.off("webrtc-toggle-audio")
             socket.off("webrtc-hangup")
+            socket.off("webrtc-reject")
             socket.off("webrtc-busy")
         }
     }, [])
@@ -950,6 +1003,63 @@ function Chat(){
         }
     }
 
+    const handleUbicacionEnviada = async (coordsStr) => {
+        if (!amigoActivo) return
+
+        const textoEnviar = encriptarMensajes ? encriptar(coordsStr) : coordsStr
+        const textoParaMostrar = coordsStr
+
+        try {
+            if (amigoActivo.esGrupo) {
+                await fetch(`${API_URL}/mensajes/grupo/enviar`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        idConversacion: amigoActivo.ID_Conversacion,
+                        idEmisor: usuario.id,
+                        contenido: textoEnviar,
+                        tipo: "ubicacion"
+                    })
+                })
+
+                socket.emit("mensaje_grupo", {
+                    idConversacion: amigoActivo.ID_Conversacion,
+                    text: textoEnviar,
+                    idEmisor: usuario.id,
+                    nombreEmisor: usuario.nombreUsuario || usuario.NombreUsuario,
+                    nombreGrupo: amigoActivo.nombreGrupo,
+                    tipo: "ubicacion"
+                })
+
+                setMensajes(prev => [...prev, { text: textoParaMostrar, type: "right", tipo: "ubicacion" }])
+            } else {
+                await fetch(`${API_URL}/mensajes/enviar`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        idEmisor: usuario.id,
+                        idReceptor: amigoActivo.ID_Us,
+                        contenido: textoEnviar,
+                        tipo: "ubicacion"
+                    })
+                })
+
+                socket.emit("mensaje", {
+                    text: textoEnviar,
+                    idEmisor: usuario.id,
+                    idReceptor: amigoActivo.ID_Us,
+                    nombreEmisor: usuario.nombreUsuario || usuario.NombreUsuario,
+                    tipo: "ubicacion"
+                })
+
+                setMensajes(prev => [...prev, { text: textoParaMostrar, type: "right", tipo: "ubicacion" }])
+            }
+        } catch (error) {
+            console.error("Error enviando ubicación:", error)
+            toast.error("Error al enviar la ubicación.")
+        }
+    }
+
     const handleAmigoActualizado = () => {
         setActualizarSidebar(prev => prev + 1)
     }
@@ -995,9 +1105,9 @@ function Chat(){
                 className="btn-volver-mobile"
                 onClick={() => { setVista("chat"); setSidebarVisible(true) }}
                 aria-label="Volver"
-                style={{display: "flex"}}
+                style={{display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none"}}
             >
-                ←
+                <img src={FlechaIzquierdaIcon} alt="Volver" style={{ width: "24px", height: "24px", objectFit: "contain" }} />
             </button>
             <h3 style={{margin: 0, color: "white", flex: 1, textAlign: "center"}}>{titulo}</h3>
             <div style={{width: 36}}/>{/* espaciador para centrar titulo */}
@@ -1064,30 +1174,42 @@ function Chat(){
                                     onVolver={handleVolverSidebar}
                                     onIniciarLlamada={iniciarLlamada}
                                 />
-                                <div className="chat-messages" ref={mensajesContainerRef}>
-                                    {mensajes.length === 0 ? (
-                                        <p style={{color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:"20px"}}>
-                                            No hay mensajes aún. ¡Envía uno!
-                                        </p>
-                                    ) : (
-                                        mensajes.map((msg, index) => (
-                                            <Message
-                                                key={index}
-                                                text={desencriptar(msg.text)}
-                                                type={msg.type}
-                                                senderName={msg.senderName}
-                                                tipo={msg.tipo}
-                                                archivo={msg.archivo}
-                                            />
-                                        ))
+                                <div className="chat-messages-wrapper">
+                                    <div className="chat-messages" ref={mensajesContainerRef} onScroll={handleScrollMessages}>
+                                        {mensajes.length === 0 ? (
+                                            <p style={{color:"rgba(255,255,255,0.5)", textAlign:"center", marginTop:"20px"}}>
+                                                No hay mensajes aún. ¡Envía uno!
+                                            </p>
+                                        ) : (
+                                            mensajes.map((msg, index) => (
+                                                <Message
+                                                    key={index}
+                                                    text={desencriptar(msg.text)}
+                                                    type={msg.type}
+                                                    senderName={msg.senderName}
+                                                    tipo={msg.tipo}
+                                                    archivo={msg.archivo}
+                                                />
+                                            ))
+                                        )}
+                                        <div ref={mensajesEndRef}/>
+                                    </div>
+                                    {mostrarBotonBajar && (
+                                        <button 
+                                            className="scroll-to-bottom-btn" 
+                                            onClick={() => scrollAlFondo(true)}
+                                            title="Bajar al final"
+                                        >
+                                            <img src={FlechaAbajoIcon} alt="Bajar" style={{ width: "20px", height: "20px" }} />
+                                        </button>
                                     )}
-                                    <div ref={mensajesEndRef}/>
                                 </div>
                                 <ChatInput
                                     mensaje={mensaje}
                                     setMensaje={setMensaje}
                                     enviarMensaje={enviarMensaje}
                                     onArchivoEnviado={handleArchivoEnviado}
+                                    onUbicacionEnviada={handleUbicacionEnviada}
                                     amigoActivo={amigoActivo}
                                     usuarioId={usuario?.id}
                                     encriptarMensajes={encriptarMensajes}

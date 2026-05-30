@@ -607,7 +607,7 @@ app.get("/mensajes/:idUsuario/:idAmigo", (req, res) => {
 })
 
 app.post("/mensajes/enviar", (req, res) => {
-    const { idEmisor, idReceptor, contenido } = req.body
+    const { idEmisor, idReceptor, contenido, tipo = "texto" } = req.body
     const sqlBuscar = `
         SELECT cu1.id_conversacion FROM conversacion_usuario cu1
         INNER JOIN conversacion_usuario cu2 ON cu1.id_conversacion = cu2.id_conversacion
@@ -622,7 +622,7 @@ app.post("/mensajes/enviar", (req, res) => {
     db.query(sqlBuscar, [idEmisor, idReceptor], (err, result) => {
         if (err) return res.status(500).json({ error: "Error" })
         if (result.length > 0) {
-            insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res, "texto", null, leido)
+            insertarMensaje(result[0].id_conversacion, idEmisor, contenido, res, tipo, null, leido)
         } else {
             db.query("INSERT INTO conversacion (esGrupo) VALUES (0)", (err, r) => {
                 if (err) return res.status(500).json({ error: "Error al crear conversación" })
@@ -632,7 +632,7 @@ app.post("/mensajes/enviar", (req, res) => {
                     [idCon, idEmisor, idCon, idReceptor],
                     (err) => {
                         if (err) return res.status(500).json({ error: "Error" })
-                        insertarMensaje(idCon, idEmisor, contenido, res, "texto", null, leido)
+                        insertarMensaje(idCon, idEmisor, contenido, res, tipo, null, leido)
                     }
                 )
             })
@@ -970,7 +970,7 @@ app.post("/grupos/salir", (req, res) => {
 
 // Enviar un mensaje al grupo
 app.post("/mensajes/grupo/enviar", (req, res) => {
-    const { idConversacion, idEmisor, contenido } = req.body;
+    const { idConversacion, idEmisor, contenido, tipo = "texto" } = req.body;
     
     // Validar que pertenezca al grupo antes de enviar
     const sqlCheck = "SELECT 1 FROM conversacion_usuario WHERE id_conversacion = ? AND id_usuario = ?";
@@ -980,7 +980,7 @@ app.post("/mensajes/grupo/enviar", (req, res) => {
             return res.status(403).json({ error: "No eres miembro de este grupo." });
         }
         
-        insertarMensaje(idConversacion, idEmisor, contenido, res);
+        insertarMensaje(idConversacion, idEmisor, contenido, res, tipo);
     });
 });
 
@@ -1351,8 +1351,37 @@ app.post("/mensajes/archivo", uploadMensaje.single("archivo"), async (req, res) 
 
     db.query(sqlConv, [idEmisor, idReceptor], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message })
+
+        const insertarYResponder = (idCon) => {
+            insertarMensaje(idCon, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
+            
+            // --- ACTUALIZAR TAREA (después de insertar mensaje) ---
+            const port = process.env.PORT || 3000
+            // idTarea 10 = "Mira!!" (Envia una Foto o Imagen a un chat)
+            fetch(`http://localhost:${port}/tareas/progreso`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    idUsuario: idEmisor, 
+                    idTarea: 10,        // Ajusta según tu BD
+                    incremento: 1
+                })
+            }).catch(err => console.error("Error actualizando tarea (archivo):", err))
+            // -----------------------------------------------------
+            // idTarea 14 = "envia más de 6 Fotos a un amigo (1000pts c/u)"
+            fetch(`http://localhost:${port}/tareas/progreso`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    idUsuario: idEmisor, 
+                    idTarea: 14,        // Ajusta según tu BD
+                    incremento: 1
+                })
+            }).catch(err => console.error("Error actualizando tarea (archivo):", err))
+        }
+
         if (rows.length > 0) {
-            insertarMensaje(rows[0].id_conversacion, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
+            insertarYResponder(rows[0].id_conversacion)
         } else {
             db.query("INSERT INTO conversacion (esGrupo) VALUES (0)", (err2, result) => {
                 if (err2) return res.status(500).json({ error: err2.message })
@@ -1361,7 +1390,7 @@ app.post("/mensajes/archivo", uploadMensaje.single("archivo"), async (req, res) 
                     [idCon, idEmisor, idCon, idReceptor],
                     (err3) => {
                         if (err3) return res.status(500).json({ error: err3.message })
-                        insertarMensaje(idCon, idEmisor, req.file.originalname, res, tipo, urlArchivo, leido)
+                        insertarYResponder(idCon)
                     }
                 )
             })
@@ -1529,6 +1558,14 @@ io.on("connection", (socket) => {
             from: usuarioIdActual
         })
     })
+
+    socket.on("webrtc-reject", (data) => {
+        console.log(`[WebRTC Server] Rechazo de llamada de: ${usuarioIdActual} para: ${data.to}`);
+        // Reenviar el evento al destinatario (quien inició la llamada)
+        socket.broadcast.to(`user_${data.to}`).emit("webrtc-reject", {
+            from: usuarioIdActual
+        });
+    });
 
     socket.on("webrtc-busy", (data) => {
         console.log(`[WebRTC Server] Destinatario ocupado: ${usuarioIdActual} para: ${data.to}`)

@@ -40,6 +40,48 @@ function Message({ text, type, senderName, tipo, archivo }) {
             )
         }
 
+        const esUbicacionPorRegex = typeof text === "string" && /^(-?\d+\.\d+),(-?\d+\.\d+)$/.test(text.trim())
+
+        if (tipo === "ubicacion" || esUbicacionPorRegex) {
+            let lat = 0
+            let lng = 0
+            const coordsMatch = text.match(/(-?\d+\.\d+),(-?\d+\.\d+)/)
+            if (coordsMatch) {
+                lat = parseFloat(coordsMatch[1])
+                lng = parseFloat(coordsMatch[2])
+            }
+
+            const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`
+            const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.003}%2C${lat - 0.003}%2C${lng + 0.003}%2C${lat + 0.003}&layer=mapnik&marker=${lat}%2C${lng}`
+
+            return (
+                <div className="msg-ubicacion-container">
+                    {lat !== 0 && lng !== 0 ? (
+                        <iframe 
+                            title="Mapa de Ubicación"
+                            width="100%" 
+                            height="160" 
+                            frameBorder="0" 
+                            scrolling="no" 
+                            marginHeight="0" 
+                            marginWidth="0" 
+                            src={osmEmbedUrl}
+                            style={{ border: 'none', borderRadius: '12px', marginBottom: '8px', pointerEvents: 'none' }}
+                        />
+                    ) : null}
+                    <a 
+                        href={googleMapsUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="msg-ubicacion-link"
+                    >
+                        <span className="msg-location-icon">📍</span>
+                        <span className="msg-location-text">Ver en Google Maps</span>
+                    </a>
+                </div>
+            )
+        }
+
         // Mensaje de texto normal
         return text
     }
