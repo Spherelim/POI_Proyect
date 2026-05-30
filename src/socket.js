@@ -1,6 +1,5 @@
 import { io } from "socket.io-client"
 
-const usuario = JSON.parse(localStorage.getItem("usuario"))
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost" + (import.meta.env.VITE_API_PORT || ":3000")
 
 export const socket = io(API_URL, {
@@ -11,8 +10,10 @@ export const socket = io(API_URL, {
 
 socket.on("connect", () => {
     console.log("Socket conectado")
-    if (usuario?.id) {
-        socket.emit("registrar", usuario.id)
+    // Obtener el usuario de forma dinámica en cada conexión/reconexión
+    const usuarioActual = JSON.parse(localStorage.getItem("usuario"))
+    if (usuarioActual?.id) {
+        socket.emit("registrar", usuarioActual.id)
     }
 })
 

@@ -30,3 +30,75 @@
     align-self: flex-end;
     border-bottom-right-radius: 5px;
 }
+
+/* ── Mensajes de imagen ───────────────────────── */
+.message-img {
+    padding: 4px !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.msg-imagen {
+    max-width: 220px;
+    max-height: 220px;
+    border-radius: 14px;
+    object-fit: cover;
+    display: block;
+    cursor: zoom-in;
+    transition: opacity 0.2s;
+}
+
+.msg-imagen:hover { opacity: 0.88; }
+
+/* ── Mensajes de archivo ─────────────────────── */
+.msg-archivo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+    padding: 2px 0;
+}
+
+.msg-archivo-icon { font-size: 20px; flex-shrink: 0; }
+
+.msg-archivo-nombre {
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+}
+
+.msg-archivo-ext {
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(0,0,0,0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+}
+
+.left .msg-archivo-ext { background: rgba(255,255,255,0.15); }
+
+/* ── Nombre del remitente en grupos ────────────── */
+.msg-sender-name {
+    font-size: 11px;
+    color: #dfdcfc; /* Morado claro/blanco para alta visibilidad */
+    font-weight: 600;
+    margin-bottom: 3px;
+    margin-left: 8px;
+    letter-spacing: 0.3px;
+    /* Contorno negro de 1.5px alrededor de la letra */
+    text-shadow: 
+        -1.5px -1.5px 0 #000,  
+         1.5px -1.5px 0 #000,
+        -1.5px  1.5px 0 #000,
+         1.5px  1.5px 0 #000,
+        -1.5px  0px   0 #000,
+         1.5px  0px   0 #000,
+         0px   -1.5px 0 #000,
+         0px    1.5px 0 #000;
+}
+

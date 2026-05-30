@@ -1,22 +1,57 @@
-#Perfil-Img{
+/* PerfilCard.css */
+#Perfil-Img {
     border-radius: 100%;
     border: 2px solid white;
-    padding: 0%;
+    padding: 0;
 }
 
-.Perfil-Card{
+.Perfil-Card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px;
+    padding: 8px 6px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Contenedor de iconos de acción */
+.Perfil-Card > div:last-child,
+.perfil-icons {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .Perfil-Card svg {
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s, opacity 0.2s;
+    flex-shrink: 0;
 }
 
 .Perfil-Card svg:hover {
     transform: scale(1.1);
     opacity: 0.7;
+}
+
+/* ── Responsive: iconos más pequeños en pantallas estrechas ── */
+@media (max-width: 420px) {
+    .Perfil-Card svg {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    .Perfil-Card {
+        padding: 6px 4px;
+    }
+}
+
+@media (max-width: 340px) {
+    .Perfil-Card svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+    .Perfil-Card {
+        padding: 4px 2px;
+    }
 }

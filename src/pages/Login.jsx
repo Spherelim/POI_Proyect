@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
+import { toast } from "react-toastify"
 import "./Login.css"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
@@ -13,7 +14,7 @@ function Login(){
     const Loguearse = async () => {
         
         if (!nombre || !contrasena) {
-            alert("Por favor, completa todos los campos.")
+            toast.warning("Por favor, completa todos los campos.")
             return;
         }
 
@@ -32,7 +33,7 @@ function Login(){
             const data = await response.json()
 
             if (!response.ok) {
-                alert(data.error || "Error al iniciar sesión.")
+                toast.error(data.error || "Error al iniciar sesión.")
                 return;
             }
 
@@ -41,7 +42,7 @@ function Login(){
 
         }catch(error){
             console.error("Error al iniciar sesión:", error)
-            alert("No se pudo conectar al servidor.")
+            toast.error("No se pudo conectar al servidor.")
         }
     }
 
@@ -59,20 +60,22 @@ function Login(){
                         aria-label="Regresar a inicio">✕
                     </button>
 
-                    <h2>Login</h2>
+                    <h2 className="Registrar">Login</h2>
                     <input 
                         type="text" 
                         placeholder="Nombre de Usuario" 
                         value={nombre}
                         onChange={(e) => setNombre(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && Loguearse()}
                     />
                     <input 
                         type="password" 
                         placeholder="Contraseña" 
                         value={contrasena}
                         onChange={(e) => setContrasena(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && Loguearse()}
                     />
-                    <a onClick={()=>navigate("/Singup")}>No tienes una cuenta? Registrate.</a>
+                    <a onClick={()=>navigate("/Singup")}>¿No tienes cuenta? Regístrate.</a>
                     <button onClick={Loguearse}>Iniciar Sesión</button>
                 </div>
             </div>

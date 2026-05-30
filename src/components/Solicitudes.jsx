@@ -66,31 +66,31 @@ function Solicitudes({cerrar, onAmigoActualizado}){
         if (onAmigoActualizado) onAmigoActualizado()
     }
 
+    const fetchUsuarios = async (query) => {
+        const res = await fetch(`${API_URL}/usuarios/buscar?q=${encodeURIComponent(query)}&idUsuario=${usuario.id}`)
+        const data = await res.json()
+        const conFotos = await Promise.all(
+            data.map(async (user) => {
+                try {
+                    const fotoRes = await fetch(`${API_URL}/usuarios/${user.ID_Us}/foto`)
+                    const fotoData = await fotoRes.json()
+                    return { ...user, foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault }
+                } catch {
+                    return { ...user, foto: FotoDefault }
+                }
+            })
+        )
+        setResultados(conFotos)
+    }
+
+    // Cargar todos los usuarios al montar el tab de buscar
     useEffect(() => {
-        if (!busqueda.trim()) {
-            setResultados([])
-            return
-        }
-        const timeout = setTimeout(async () => {
-            const res = await fetch(`${API_URL}/usuarios/buscar?q=${busqueda}&idUsuario=${usuario.id}`)
-            const data = await res.json()
-            
-            // Cargar fotos de los resultados de búsqueda
-            const resultadosConFotos = await Promise.all(
-                data.map(async (user) => {
-                    try {
-                        const fotoRes = await fetch(`${API_URL}/usuarios/${user.ID_Us}/foto`)
-                        const fotoData = await fotoRes.json()
-                        return {
-                            ...user,
-                            foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault
-                        }
-                    } catch (error) {
-                        return { ...user, foto: FotoDefault }
-                    }
-                })
-            )
-            setResultados(resultadosConFotos)
+        fetchUsuarios("")
+    }, [])
+
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            fetchUsuarios(busqueda.trim())
         }, 300)
         return () => clearTimeout(timeout)
     }, [busqueda])
@@ -101,24 +101,7 @@ function Solicitudes({cerrar, onAmigoActualizado}){
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ idEmisor: usuario.id, idReceptor })
         })
-        // Actualizar resultados
-        const res = await fetch(`${API_URL}/usuarios/buscar?q=${busqueda}&idUsuario=${usuario.id}`)
-        const data = await res.json()
-        const resultadosConFotos = await Promise.all(
-            data.map(async (user) => {
-                try {
-                    const fotoRes = await fetch(`${API_URL}/usuarios/${user.ID_Us}/foto`)
-                    const fotoData = await fotoRes.json()
-                    return {
-                        ...user,
-                        foto: fotoData.foto ? `${API_URL}${fotoData.foto}` : FotoDefault
-                    }
-                } catch (error) {
-                    return { ...user, foto: FotoDefault }
-                }
-            })
-        )
-        setResultados(resultadosConFotos)
+        fetchUsuarios(busqueda.trim())
     }
 
     const responder = async (idAmistad, accion) => {

@@ -1,4 +1,2 @@
-body{
-    background: linear-gradient(180deg, #293961 0%, #5474C7 91%);
-    margin: 0%;
-}
+/* Home.css — la landing tiene scroll propio, el #root no debe bloquearla */
+/* El fondo ya está en el .home-wrapper de Hero-Home.css */
